@@ -4,12 +4,13 @@ import { readFile } from 'node:fs/promises';
 const source = await readFile(new URL('../mods/omarchy-changes/main.js', import.meta.url), 'utf8');
 const calls = [];
 let failOn = null;
+const refs = 'refs/heads/main\nrefs/heads/feat\nrefs/remotes/origin/HEAD\nrefs/remotes/origin/main\nrefs/remotes/origin/fix/x\n';
 const element = new Proxy({}, { get: () => () => element });
 const dependencies = {
   View: class {}, div: () => element, image: () => element, svg: () => element, v_flex: () => element, h_flex: () => element,
   InputState: { new: () => ({ on() {}, value: () => '', set_value() {} }) }, Input: { new: () => element }, Scrollbar: { vertical: () => element },
   v_virtual_list: () => element, spaces: () => [{ active: true, folder: '/repo' }], focused: () => ({}), panes: () => [],
-  exec: async (cmd, args) => { calls.push(args.join(' ')); return { code: args[0] === failOn ? 1 : 0, stdout: '', stderr: `${args[0]} broke` }; },
+  exec: async (cmd, args) => { calls.push(args.join(' ')); return { code: args[0] === failOn ? 1 : 0, stdout: args.includes('for-each-ref') ? refs : '', stderr: `${args[0]} broke` }; },
   readTextFile: async () => null, watchFolder: async () => {}, theme: () => ({}), settings: () => ({}),
   fileAppearance: () => ({ icon: '_file' }), gitStatus: () => 'M', statusColor: () => '#ffffff',
 };
@@ -38,5 +39,10 @@ await press({ sync: { upstream: false } }, (p, cx) => p.push(cx));
 assert.deepEqual(calls, ['push -u origin HEAD'], 'push without upstream sets it');
 await press({ sync: { upstream: true } }, (p, cx) => p.push(cx));
 assert.deepEqual(calls, ['push'], 'push with upstream is plain');
+
+panel = await press({}, (p, cx) => p.toggleBranches(cx));
+assert.deepEqual(panel.branches, ['main', 'feat', 'fix/x'], 'local first, remote short names, no HEAD or duplicates');
+await press({}, (p, cx) => p.switchTo('fix/x', cx));
+assert.deepEqual(calls, ['switch fix/x']);
 
 console.log('Git runner stops at the first failure; Push picks -u origin HEAD only without an upstream');

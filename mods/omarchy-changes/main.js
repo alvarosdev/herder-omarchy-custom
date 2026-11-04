@@ -63,7 +63,7 @@ export default class Changes extends View {
     const { cwd, on } = location(), context = key();
     if (context !== this.context) {
       this.context = context; this.root = null; this.files = []; this.open = null; this.sync = null;
-      this.setLines([]); this.message = ""; this.input.set_value(""); this.error = null; this.note = null; this.watched = null; this.closed = false; this.limited = false;
+      this.setLines([]); this.message = ""; this.input.set_value(""); this.error = null; this.note = null; this.watched = null; this.closed = false; this.limited = false; this.branches = null;
     }
     if (!cwd) return;
     this.loading = true;
@@ -184,6 +184,43 @@ export default class Changes extends View {
     this.git(cx, "Push", [s?.upstream ? ["push"] : ["push", "-u", "origin", "HEAD"]]);
   }
 
+  // Local branches, then remote-only ones by short name (`git switch` creates the tracking branch).
+  toggleBranches(cx) {
+    if (this.branches) { this.branches = null; cx.notify(); return; }
+    if (!this.root) return;
+    const root = this.root, on = this.on, context = this.context;
+    this.branches = [];
+    cx.spawn(async (cx) => {
+      const r = await exec("git", [...READ, "for-each-ref", "--sort=-committerdate", "--format=%(refname)", "refs/heads", "refs/remotes"], { cwd: root, on });
+      if (key() !== context || !this.branches) return;
+      const names = [];
+      for (const ref of r.stdout.split("\n").filter(Boolean)) {
+        const name = ref.startsWith("refs/heads/") ? ref.slice(11) : ref.split("/").slice(3).join("/");
+        if (name && name !== "HEAD" && !names.includes(name)) names.push(name);
+      }
+      this.branches = names.length ? names : null;
+      if (r.code !== 0) this.note = `Branches failed: ${r.stderr.trim()}`;
+      cx.notify();
+    });
+    cx.notify();
+  }
+
+  switchTo(name, cx) {
+    this.branches = null;
+    this.git(cx, "Switch", [["switch", name]], () => { this.open = null; this.closed = false; this.setLines([]); });
+  }
+
+  branchList(t) {
+    const current = this.sync?.branch;
+    return v_flex().id("branch-list").flex_none().max_h(220).overflow_y_scrollbar().py(4).border_b(1).border_color(t.border).bg(t.chrome)
+      .when(!this.branches.length, (e) => e.child(div().px(12).py(4).text_size(12).text_color(t.dim).child("Loading branches…")))
+      .children(this.branches.map((name) => h_flex().id(`branch-${name}`).h(26).flex_none().px(12).gap(8).items_center().text_size(12)
+        .text_color(name === current ? t.accent : t.foreground)
+        .when(name !== current && !this.busy && !this.loading, (e) => e.cursor_pointer().hover((s) => s.bg(t.foreground + "14")).on_click((_e, cx) => this.switchTo(name, cx)))
+        .child(div().w(10).flex_none().child(name === current ? "•" : ""))
+        .child(div().flex_1().min_w(0).truncate().child(name))));
+  }
+
   syncButton(t, name, icon, tip, onClick, { enabled = true, count = 0, arrow = "", color } = {}) {
     const on = enabled && Boolean(this.root) && !this.busy && !this.loading;
     return h_flex().id(`git-${name}`).h(28).px(7).gap(4).items_center().flex_none().rounded(0).border_1().border_color(t.background)
@@ -199,8 +236,12 @@ export default class Changes extends View {
   syncRow(t) {
     const s = this.sync;
     return h_flex().h(40).flex_none().px(10).gap(6).items_center().border_b(1).border_color(t.border)
-      .child(svg("mods/omarchy-changes/branch.svg").size(14).flex_none().text_color(t.muted))
-      .child(div().flex_1().min_w(0).truncate().text_size(12).text_color(t.muted).child(s ? `${s.branch}${s.upstream ? "" : " · no upstream"}` : ""))
+      .child(h_flex().id("git-branch").flex_1().min_w(0).h(28).gap(6).items_center().cursor_pointer().tooltip("Switch branch")
+        .text_color(this.branches ? t.foreground : t.muted).hover((st) => st.text_color(t.foreground))
+        .when(!this.busy && !this.loading, (e) => e.on_click((_e, cx) => this.toggleBranches(cx)))
+        .child(svg("mods/omarchy-changes/branch.svg").size(14).flex_none().text_color(t.muted))
+        .child(div().min_w(0).truncate().text_size(12).child(s ? `${s.branch}${s.upstream ? "" : " · no upstream"}` : ""))
+        .child(svg("mods/omarchy-changes/chevron-down.svg").size(12).flex_none().text_color(t.muted)))
       .child(this.syncButton(t, "Fetch", "fetch", "Fetch from remote", (cx) => this.git(cx, "Fetch", [["fetch", "--prune"]])))
       .child(this.syncButton(t, "Pull", "pull", "Pull (fast-forward only)", (cx) => this.git(cx, "Pull", [["pull", "--ff-only"]]), { enabled: Boolean(s?.upstream), count: s?.behind, arrow: "↓", color: t.ansi3 }))
       .child(this.syncButton(t, "Push", "push", s?.upstream ? "Push commits" : "Push and set upstream to origin", (cx) => this.push(cx), { enabled: s?.branch !== "detached HEAD", count: s?.ahead, arrow: "↑", color: t.ansi4 }))
@@ -228,6 +269,7 @@ export default class Changes extends View {
         .child(div().px(5).py(1).rounded(0).text_size(10).text_color(t.muted).child(`${this.files.length} files`))
         .child(div().flex_1()).child(div().text_size(11).text_color(t.ansi2).child(`+${add}`)).child(div().text_size(11).text_color(t.ansi1).child(`−${del}`)))
       .when(Boolean(this.root), (e) => e.child(this.syncRow(t)))
+      .when(Boolean(this.root && this.branches), (e) => e.child(this.branchList(t)))
       .child(v_flex().flex_1().min_h(0).p(8).gap(8)
         .child(v_flex().id("changes-list").flex_none().h(Math.min(200, Math.max(44, this.files.length * 28 + 12))).overflow_y_scrollbar().p(6).rounded(0).bg(t.chrome).children(this.files.map((f) => {
           const parts = f.path.split("/"), name = parts.pop();
