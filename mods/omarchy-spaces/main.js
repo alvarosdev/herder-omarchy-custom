@@ -456,8 +456,8 @@ export default class Spaces extends View {
       changed = true;
     }
     if (changed) setShared("space.colors", kept);
-    return v_flex().size_full().min_h(0).bg(t.chrome).text_size(12)
-      .child(h_flex().h(30).pl(18).pr(10).items_center().justify_between().text_size(11).text_color(t.dim)
+    return v_flex().size_full().min_h(0).bg(t.chrome).pt(10).text_size(12)
+      .child(h_flex().h(26).flex_none().pl(18).pr(10).items_center().justify_between().text_size(11).text_color(t.dim)
         .when(!collapsed, el => el.child(`spaces ${sp.length}`))
         .child(div().id("space-new").size(22).flex_none().flex().items_center().justify_center().rounded(0).border(1).border_color(t.foreground + "00").hover(s => s.bg(t.foreground + "14").border_color(t.foreground + "40").text_color(t.foreground))
           .on_click(() => run("space.new")).child(svg("mods/omarchy-chrome/plus.svg").size(14))))

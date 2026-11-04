@@ -429,13 +429,14 @@ export default class Agents extends View {
       .size_full()
       .min_h(0)
       .bg(t.chrome)
+      .pt(collapsed ? 0 : 10)
       .text_size(12)
       .when(!collapsed, (el) =>
         el.child(
           h_flex()
             .pl(18)
             .pr(10)
-            .h(30)
+            .h(26)
             .flex_none()
             .items_center()
             .justify_between()
