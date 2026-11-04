@@ -457,11 +457,11 @@ export default class Spaces extends View {
     }
     if (changed) setShared("space.colors", kept);
     return v_flex().size_full().min_h(0).bg(t.chrome).text_size(12)
-      .child(h_flex().h(30).pl(16).pr(8).items_center().justify_between().text_size(11).text_color(t.dim)
+      .child(h_flex().h(30).pl(18).pr(10).items_center().justify_between().text_size(11).text_color(t.dim)
         .when(!collapsed, el => el.child(`spaces ${sp.length}`))
         .child(div().id("space-new").size(22).flex_none().flex().items_center().justify_center().rounded(0).border(1).border_color(t.foreground + "00").hover(s => s.bg(t.foreground + "14").border_color(t.foreground + "40").text_color(t.foreground))
           .on_click(() => run("space.new")).child(svg("mods/omarchy-chrome/plus.svg").size(14))))
-      .child(v_flex().flex_1().min_h(0).px(8).pb(8).gap(2).overflow_y_scrollbar().mode("always")
+      .child(v_flex().flex_1().min_h(0).px(10).pb(10).gap(2).overflow_y_scrollbar().mode("always")
         .on_mouse_up("left", (_e, cx) => { this.pressed = null; cx.notify(); })
         .children(this.grouped(t, collapsed)));
   }
