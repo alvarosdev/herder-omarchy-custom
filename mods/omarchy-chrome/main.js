@@ -37,7 +37,7 @@ export default class WorkspaceChrome extends View {
         .text_color(dim ? t.dim : t.muted).hover(s => s.bg(t.foreground + "14").border_color(t.foreground + "40").text_color(t.foreground)).cursor_pointer()
         .on_click(action).child(svg(`mods/omarchy-chrome/${icon}.svg`).size(14))
         .when(!collapsed, el => el.child(label));
-      return v_flex().size_full().justify_center().bg(t.chrome).px(8).py(6).gap(2).text_size(12)
+      return v_flex().size_full().justify_center().bg(t.chrome).px(8).py(10).gap(2).text_size(12)
         .child(row("settings", "settings", "Settings", false, () => run("mod.open", { name: "omarchy-settings" }))
           .when(Boolean(updates().app.ready), el => el.child(div().size(6).rounded(0).bg(t.accent))))
         .child(row("machine", "plus", "Add machine", true, () => run("mod.open", { name: "machine-add" })));
