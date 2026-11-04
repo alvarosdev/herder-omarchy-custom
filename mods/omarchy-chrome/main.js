@@ -34,10 +34,10 @@ export default class WorkspaceChrome extends View {
     const collapsed = narrow();
     if (props()?.footer) {
       const row = (id, icon, label, dim, action) => h_flex().id(id).h(26).px(8).gap(9).items_center().rounded(0).border(1).border_color(t.foreground + "00")
-        .bg(t.foreground + "0a").text_color(dim ? t.dim : t.muted).hover(s => s.bg(t.foreground + "14").border_color(t.foreground + "40").text_color(t.foreground)).cursor_pointer()
+        .text_color(dim ? t.dim : t.muted).hover(s => s.bg(t.foreground + "14").border_color(t.foreground + "40").text_color(t.foreground)).cursor_pointer()
         .on_click(action).child(svg(`mods/omarchy-chrome/${icon}.svg`).size(14))
         .when(!collapsed, el => el.child(label));
-      return v_flex().size_full().bg(t.chrome).border_t(1).border_color(t.border).px(8).pt(4).pb(8).gap(4).text_size(12)
+      return v_flex().size_full().justify_center().bg(t.chrome).px(8).py(6).gap(2).text_size(12)
         .child(row("settings", "settings", "Settings", false, () => run("mod.open", { name: "omarchy-settings" }))
           .when(Boolean(updates().app.ready), el => el.child(div().size(6).rounded(0).bg(t.accent))))
         .child(row("machine", "plus", "Add machine", true, () => run("mod.open", { name: "machine-add" })));
