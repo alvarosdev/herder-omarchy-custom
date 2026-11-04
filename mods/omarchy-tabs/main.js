@@ -78,9 +78,9 @@ export default class Tabs extends View {
       const multi = agentPanes.length > 1;
       const personNamed = c.named && shared("tab-titles.set")?.[c.id] !== c.name && !programs.some(p => p.name === c.name);
       // The icons already say which agents run here; the label carries what they work on.
-      const isProgram = n => !n || tabPanes.some(p => p.program?.name === n) || n === "Claude Code";
+      const isProgram = n => !n || tabPanes.some(p => p.program?.name === n || p.terminal === n) || n === "Claude Code";
       const folder = lead?.cwd ? (/^\/(home\/[^/]+|root)\/?$/.test(lead.cwd) ? "~" : lead.cwd.split("/").filter(Boolean).pop()) : "";
-      const work = [title, lead?.branch, folder].find(n => !isProgram(n)) ?? (isProgram(c.name) ? "" : c.name);
+      const work = [title, folder, lead?.branch].find(n => !isProgram(n)) ?? (isProgram(c.name) ? "" : c.name);
       const name = personNamed && !isProgram(c.name) ? c.name : work;
       const detail = multi
         ? agentPanes.map(p => `${p.program.name}: ${({ working: "working", blocked: "needs input", done: "done" })[p.status] ?? "idle"}`).join("\n")
