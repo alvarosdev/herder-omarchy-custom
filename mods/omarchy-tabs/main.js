@@ -59,9 +59,7 @@ export default class Tabs extends View {
     const space = spaces().find(p => p.active);
     const shown = space?.tabs ?? [];
     const stop = (_e, cx) => cx.stop_propagation();
-    const f = t.foreground, idle = f + "0a", hov = f + "14", sel = f + "2e", edge = f + "40";
-    const button = (id, label, action) => div().id(id).size(26).flex_none().flex().items_center().justify_center().rounded(0).border(1).border_color(t.chrome).text_color(t.dim).hover(s => s.bg(hov).border_color(edge).text_color(t.foreground))
-      .on_mouse_down("left", stop).on_click(action).child(label);
+    const f = t.foreground, idle = f + "0a", hov = f + "14", sel = f + "2e";
     const allPanes = panes(), allTerminals = terminals();
     const item = (c, i) => {
       const tabPanes = allPanes.filter(p => p.tab === c.id);
@@ -115,22 +113,25 @@ export default class Tabs extends View {
     this.syncPanel(space, panel, body, enabled);
     const panelButton = (id, label, icon) => {
       const on = panel && !panel.hidden && body?.active === id;
-      return h_flex().id(`panel-${id}`).h(26).px(8).gap(5).flex_none().items_center().rounded(0).border(1).border_color(on ? t.accent : t.chrome)
+      // Full-height cells like the tabs, so the strip has one rhythm and no odd gaps.
+      return h_flex().id(`panel-${id}`).relative().h_full().px(12).gap(6).flex_none().items_center().rounded(0).border_l(1).border_color(t.border)
         .text_size(12).bg(on ? sel : idle).text_color(on ? t.foreground : t.muted)
-        .hover(s => s.bg(on ? sel : hov).border_color(on ? t.accent : edge)).on_mouse_down("left", stop)
+        .hover(s => s.bg(on ? sel : hov)).on_mouse_down("left", stop)
+        .when(on, el => el.child(div().absolute().bottom_0().left_0().right_0().h(2).bg(t.accent)))
         .on_click(() => {
           if (on) run("layout.hide", { id: "panel" });
           else { run("layout.select", { stack: "panel-body", child: id }); run("layout.show", { id: "panel" }); }
         }).child(svg(icon).size(14)).child(label);
     };
-    return h_flex().size_full().min_w(0).pr(6).gap(0).items_center().bg(t.chrome)
+    return h_flex().size_full().min_w(0).gap(0).items_center().bg(t.chrome)
       .on_mouse_up("left", () => { this.pressed = null; })
       .on_scroll_wheel(e => { if (Math.abs(e.delta.y) >= 1) run(e.delta.y > 0 ? "tab.prev" : "tab.next"); })
       .child(h_flex().id("tab-scroll").max_w(shown.length * 241).flex_shrink(1).min_w(0).h_full().items_center().gap(0).overflow_x_scrollbar().children(shown.map(item)))
-      .child(div().w(6).flex_none())
-      .child(button("tab-new", "+", () => openOverlay({ mod: "new-menu", kind: "popup", width: 250, height: 512 })))
+      .child(div().id("tab-new").h_full().w(36).flex_none().flex().items_center().justify_center().rounded(0).border_r(1).border_color(t.border).bg(idle).text_color(t.dim)
+        .hover(s => s.bg(hov).text_color(t.foreground)).on_mouse_down("left", stop)
+        .on_click(() => openOverlay({ mod: "new-menu", kind: "popup", width: 250, height: 512 })).child("+"))
       .child(div().flex_1())
-      .child(h_flex().gap(4).items_center().flex_none()
+      .child(h_flex().h_full().gap(0).items_center().flex_none()
       .when(enabled.includes("files"), el => el.child(panelButton("files", "Files", "mods/files/file.svg")))
       .when(enabled.includes("changes"), el => el.child(panelButton("changes", "Changes", "mods/changes/changes.svg")))
       .when(enabled.includes("graph"), el => el.child(panelButton("graph", "Git", "mods/omarchy-tabs/icons/graph.svg"))));
