@@ -24,6 +24,7 @@ const win = (span, used, resetsAt, extra) => ({ short: spanShort(span), long: sp
 const PROVIDERS = {
   claude: {
     name: "Claude",
+    color: "#D97757",
     async usage(c) {
       const res = await fetch("https://api.anthropic.com/api/oauth/usage", {
         headers: { Authorization: `Bearer ${c.token}`, "anthropic-beta": "oauth-2025-04-20", Accept: "application/json" },
@@ -45,6 +46,7 @@ const PROVIDERS = {
   },
   codex: {
     name: "Codex",
+    color: "#7A9DFF",
     async usage(c) {
       const res = await fetch("https://chatgpt.com/backend-api/wham/usage", {
         headers: { Authorization: `Bearer ${c.token}`, "ChatGPT-Account-Id": c.account ?? "", Accept: "application/json" },
@@ -57,6 +59,7 @@ const PROVIDERS = {
   },
   copilot: {
     name: "Copilot",
+    color: "#a371f7",
     async usage(c) {
       const res = await fetch("https://api.github.com/copilot_internal/user", {
         headers: { Authorization: `token ${c.token}`, Accept: "application/json" },
@@ -282,11 +285,11 @@ export default class AiUsage extends View {
         .when(twoClaudes && s.provider === "claude", el => el.child(div().whitespace_nowrap().text_color(stale ? t.dim : t.foreground).child(s.label)))
         .when(Boolean(s.note) || !first, el => el.child(div().whitespace_nowrap().text_color(t.dim).child(s.note ?? (u?.error ? "no data" : u?.fetched ? "no limits" : "…"))))
         .when(Boolean(first), el => {
-          const c = color(first, stale, t);
+          const c = color(first, stale, t, s);
           return el.child(div().relative().w(barW).h(6).bg(t.border).child(div().absolute().left(0).top(0).h_full().w(`${clamp(first.used)}%`).bg(c)))
             .child(pct(first, c));
         })
-        .when(Boolean(second), el => el.child(div().text_color(t.dim).child(second.short)).child(pct(second, color(second, stale, t))));
+        .when(Boolean(second), el => el.child(div().text_color(t.dim).child(second.short)).child(pct(second, color(second, stale, t, s))));
     });
     return this.shell(h_flex()).justify_end().px(10).gap(14).text_size(11).children(segs);
   }
@@ -307,8 +310,8 @@ export default class AiUsage extends View {
         .children((u?.windows ?? []).map(w => v_flex().gap(6)
           .child(h_flex().justify_between().items_end()
             .child(div().text_color(t.foreground).child(w.long))
-            .child(div().text_size(18).font_semibold().text_color(color(w, stale, t)).child(`${w.used}%`)))
-          .child(meter(w, stale, t, 6))
+            .child(div().text_size(18).font_semibold().text_color(color(w, stale, t, s)).child(`${w.used}%`)))
+          .child(meter(w, stale, t, 6, s))
           .child(div().text_size(11.5).text_color(t.dim).child(resets(w)))))
         .child(div().text_size(11.5).text_color(u?.error ? t.blocked : t.dim).child(footer));
     };
@@ -336,11 +339,12 @@ function pace(w) {
   return Math.min(1, Math.max(0, 1 - (end - Date.now()) / w.span));
 }
 
-function color(w, stale, t) {
+// Each provider's own brand color (Claude clay, Codex blue, Copilot purple) until it nears its limit.
+function color(w, stale, t, s) {
   if (stale) return t.dim;
   if (w.used >= 95) return RED;
   if (w.used >= 80) return AMBER;
-  return t.accent;
+  return PROVIDERS[s?.provider]?.color ?? t.accent;
 }
 
 function clock(ms) {
@@ -372,9 +376,9 @@ function resetsShort(w) {
 }
 
 // The elapsed share of the window is drawn as a ghost fill: lit past it means running ahead of pace.
-function meter(w, stale, t, height) {
+function meter(w, stale, t, height, s) {
   const ghost = stale ? null : pace(w);
-  return div().relative().w_full().h(height).rounded(height / 2).bg(t.border)
-    .when(ghost !== null, el => el.child(div().absolute().left(0).top(0).h_full().w(`${ghost * 100}%`).rounded(height / 2).bg(t.dim).opacity(0.35)))
-    .child(div().absolute().left(0).top(0).h_full().w(`${clamp(w.used)}%`).rounded(height / 2).bg(color(w, stale, t)));
+  return div().relative().w_full().h(height).rounded(0).bg(t.border)
+    .when(ghost !== null, el => el.child(div().absolute().left(0).top(0).h_full().w(`${ghost * 100}%`).rounded(0).bg(t.dim).opacity(0.35)))
+    .child(div().absolute().left(0).top(0).h_full().w(`${clamp(w.used)}%`).rounded(0).bg(color(w, stale, t, s)));
 }
