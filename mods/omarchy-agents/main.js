@@ -283,11 +283,18 @@ export default class Agents extends View {
     const tabLabels = new Map(spaces().flatMap(s => s.tabs).map(tab => [tab.id, title(tab, leads.get(tab.id))]));
     const labels = new Map(list.map(a => [a.address, tabLabels.get(a.tab) ?? (a.title || a.program?.name || "")]));
     const label = (a) => labels.get(a.address);
-    const detail = new Map(list.map(a => [a.address, /^\d+$/.test(label(a)) ? null : label(a)]));
+    // The icon already names the program, so a detail that is only "Claude Code" or "Codex" says nothing.
+    const isProgram = (a, l) => !l || /^\d+$/.test(l) || l === a.program?.name || l === "Claude Code";
+    const work = a => {
+      if (!isProgram(a, label(a))) return label(a);
+      const own = (a.title ?? "").replace(/^[^\p{L}\p{N}]+/u, "").trim();
+      return isProgram(a, own) ? null : own;
+    };
+    const detail = new Map(list.map(a => [a.address, work(a)]));
     const seen = {};
     for (const a of list) { const k = `${a.space_name}\u0000${detail.get(a.address) ?? ""}`; seen[k] = (seen[k] ?? 0) + 1; }
     for (const a of list) {
-      if (detail.get(a.address) == null && seen[`${a.space_name}\u0000`] > 1) detail.set(a.address, label(a));
+      if (detail.get(a.address) == null && seen[`${a.space_name}\u0000`] > 1 && !isProgram(a, label(a))) detail.set(a.address, label(a));
     }
 
     const row = (a, i, subs = []) => {
@@ -331,7 +338,7 @@ export default class Agents extends View {
       // Under a space header the space goes without saying; an automatic tab number says nothing.
       // Without a space header above (priority, pinned) the row names its space.
       const full = byPriority || isPinned;
-      const name = full ? a.space_name || label(a) : more ?? (/^\d+$/.test(label(a)) ? a.program?.name || label(a) : label(a));
+      const name = full ? a.space_name || label(a) : more ?? (a.space_name || label(a));
       // Two cut-off halves ("flexspring-wizar… · …") read as broken; a long name drops the detail, a short one keeps it.
       const fitsMore = (name?.length ?? 0) <= 14;
       return h_flex()

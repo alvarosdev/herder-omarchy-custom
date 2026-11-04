@@ -15,7 +15,7 @@ Top to bottom, left to right. Sizes are logical px at zoom 1. Colors below are t
 - **Desk** (row, 10px padding and 10px gaps, wallpaper `backgrounds/omarchy-tokyo-night.jpg` shows through):
   - **Sidebar** (243px column of three tiles, each `chrome` with a 2px `border` `#414868` frame):
     - **Spaces** (weight 1): header "spaces 8" and a square `+`. Rows are 26px, each with a 16px square number badge. The active row's badge is `accent` with `accent_foreground` text, the row has an 18% foreground fill and a 2px `accent` bar on its left. Other badges are `dim` numbers in a 1px `border` square. A branch name appears only when it fits whole.
-    - **Agents** (weight 1): header "agents 3", grouped "working 1", "idle 2". Rows are 26px with the program icon, name, age, and a 7px square status dot. The focused row has an 18% fill and a 2px accent bar.
+    - **Agents** (weight 1): header "agents 3", grouped "working 1", "idle 2". Rows are 26px with the program icon, the space, what the agent works on (its title, never just a program name like "Claude Code"), age, and a 7px square status dot. The focused row has an 18% fill and a 2px accent bar.
     - **Footer** (64px): flat "Settings" and "Add machine" rows.
   - **Work column**:
     - **Tab strip** (36px tile): flat 240px cells with 1px `border` dividers. Each cell shows the agents' program icons, then what they work on (session title, else branch, else folder such as `~`), a status word and a spinner while working. Program names like "Claude Code" or "Codex" never appear: the icons carry them. The active tab has an 18% fill and a 2px `accent` bottom bar. A `+` sits right after the last tab, and Files / Changes / Git toggles sit at the right.
