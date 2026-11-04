@@ -1,0 +1,163 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { test } from 'node:test';
+import { H, DAY } from '../mods/omarchy-ai-usage/time.js';
+
+function usageHarness(files = {}, response = {}, status = 200) {
+  const state = new Map();
+  const requests = [];
+  const dependencies = {
+    View: class {},
+    home: () => '/home/test',
+    readTextFile: async path => files[path] === undefined ? null : JSON.stringify(files[path]),
+    shared: key => state.get(key),
+    setShared: (key, value) => state.set(key, value),
+    fetch: async (url, options) => {
+      requests.push({ url, ...options });
+      return { ok: status === 200, status, json: async () => response };
+    },
+  };
+  const providerSource = readFileSync(new URL('../mods/omarchy-ai-usage/providers.js', import.meta.url), 'utf8')
+    .replace(/^import .*;\n/gm, '').replace(/^export /gm, '');
+  const providers = Function(...Object.keys(dependencies), 'H', 'DAY', `${providerSource}\nreturn { PROVIDERS, sourcesFor, fetchUsage };`)(...Object.values(dependencies), H, DAY);
+  Object.assign(dependencies, providers);
+  const source = readFileSync(new URL('../mods/omarchy-ai-usage/main.js', import.meta.url), 'utf8')
+    .replace(/^import .*;\n/gm, '').replace('export default class', 'class');
+  const { refreshOne } = Function(...Object.keys(dependencies), `${source}\nreturn { refreshOne };`)(...Object.values(dependencies));
+  return { state, requests, route: (value, directory = null) => providers.sourcesFor(value, async () => directory), refreshOne };
+}
+
+const agent = key => ({ terminal: 't1', program: { key, name: key, icon: `${key}.svg`, tint: true } });
+const claude = { id: 'claude.claude', provider: 'claude', agent: 'Claude', from: { claude: '/home/test/.claude' } };
+const codex = { id: 'codex', provider: 'codex', agent: 'Codex', from: { codex: true } };
+const copilot = { id: 'copilot', provider: 'copilot', agent: 'Copilot', from: { copilot: true } };
+const claudeLogin = { '/home/test/.claude/.credentials.json': { claudeAiOauth: { accessToken: 'claude-token' } } };
+
+test('Claude normalizes session and model limits, ignoring unknown windows', async () => {
+  const h = usageHarness(claudeLogin, { limits: [
+    { kind: 'session', percent: 42.4, resets_at: '2026-11-05T01:00:00Z' },
+    { kind: 'weekly_scoped', percent: 91.7, resets_at: '2026-11-08T01:00:00Z', scope: { model: { display_name: 'Sonnet' } } },
+    { kind: 'unknown', percent: 12 },
+  ] });
+  await h.refreshOne(claude);
+  assert.deepEqual(h.state.get('omarchy-ai-usage.claude.claude').windows, [
+    { short: '5h', long: '5-hour limit', span: 5 * 3600e3, used: 42, resets_at: '2026-11-05T01:00:00Z' },
+    { short: '7d Sonnet', long: 'Weekly Sonnet limit', span: 7 * 24 * 3600e3, used: 92, resets_at: '2026-11-08T01:00:00Z' },
+  ]);
+  assert.equal(h.requests[0].url, 'https://api.anthropic.com/api/oauth/usage');
+  assert.equal(h.requests[0].headers.Authorization, 'Bearer claude-token');
+  assert.ok(!JSON.stringify([...h.state]).includes('claude-token'));
+});
+
+test('Claude also accepts legacy usage windows', async () => {
+  const h = usageHarness(claudeLogin, { five_hour: { utilization: 12.6, resets_at: 'later' }, seven_day: { utilization: 60, resets_at: 'next week' } });
+  await h.refreshOne(claude);
+  assert.deepEqual(h.state.get('omarchy-ai-usage.claude.claude').windows.map(w => [w.short, w.used]), [['5h', 13], ['7d', 60]]);
+});
+
+test('Codex sends account ID and normalizes timestamps', async () => {
+  const h = usageHarness({ '/home/test/.codex/auth.json': { tokens: { access_token: 'codex-token', account_id: 'account' } } }, {
+    rate_limit: { primary_window: { limit_window_seconds: 18000, used_percent: 34.5, reset_at: 1800000000 }, secondary_window: {} },
+  });
+  await h.refreshOne(codex);
+  assert.deepEqual(h.state.get('omarchy-ai-usage.codex').windows, [
+    { short: '5h', long: '5-hour limit', span: 18000e3, used: 35, resets_at: new Date(1800000000e3).toISOString() },
+  ]);
+  assert.equal(h.requests[0].url, 'https://chatgpt.com/backend-api/wham/usage');
+  assert.equal(h.requests[0].headers['ChatGPT-Account-Id'], 'account');
+});
+
+test('Copilot excludes unlimited and unknown quotas', async () => {
+  const h = usageHarness({ '/home/test/.config/github-copilot/hosts.json': { github: { oauth_token: 'copilot-token' } } }, {
+    quota_reset_date_utc: '2026-12-01', quota_snapshots: {
+      premium_interactions: { percent_remaining: 70 }, chat: { unlimited: true, percent_remaining: 100 }, other: { percent_remaining: 0 },
+    },
+  });
+  await h.refreshOne(copilot);
+  assert.deepEqual(h.state.get('omarchy-ai-usage.copilot').windows, [
+    { short: 'mo', long: 'Monthly premium requests', span: 30 * 24 * 3600e3, used: 30, resets_at: '2026-12-01', monthly: true },
+  ]);
+  assert.equal(h.requests[0].url, 'https://api.github.com/copilot_internal/user');
+  assert.equal(h.requests[0].headers.Authorization, 'token copilot-token');
+});
+
+test('failed credentials preserve last fetched usage without making requests', async () => {
+  const h = usageHarness({ '/home/test/.claude/.credentials.json': { claudeAiOauth: { accessToken: 'expired-token', expiresAt: 1 } } });
+  const previous = { fetched: '2026-11-01T00:00:00Z', windows: [{ used: 20 }] };
+  h.state.set('omarchy-ai-usage.claude.claude', previous);
+  await h.refreshOne(claude);
+  const result = h.state.get('omarchy-ai-usage.claude.claude');
+  assert.equal(result.fetched, previous.fetched);
+  assert.deepEqual(result.windows, previous.windows);
+  assert.match(result.error, /token expired/);
+  assert.equal(h.requests.length, 0);
+  await h.refreshOne(codex);
+  assert.match(h.state.get('omarchy-ai-usage.codex').error, /no Codex ChatGPT login/);
+});
+
+test('Claude account routing keeps work and personal sources separate', async () => {
+  const h = usageHarness();
+  assert.deepEqual((await h.route(agent('claude-code'))).map(s => [s.id, s.from.claude]), [
+    ['claude.claude', '/home/test/.claude'], ['claude.personal', '/home/test/.claude-personal'],
+  ]);
+  const [personal] = await h.route(agent('claude-code'), '/home/test/.claude-personal');
+  assert.equal(personal.id, 'claude.personal');
+  assert.equal(personal.from.claude, '/home/test/.claude-personal');
+});
+
+test('Pi shares Codex login only when account IDs match', async () => {
+  for (const accountId of ['same', 'different']) {
+    const h = usageHarness({
+      '/home/test/.pi/agent/settings.json': { defaultProvider: 'openai-codex' },
+      '/home/test/.pi/agent/auth.json': { 'openai-codex': { type: 'oauth', accountId, access: 'pi-token' } },
+      '/home/test/.codex/auth.json': { tokens: { account_id: 'same' } },
+    });
+    const [source] = await h.route(agent('pi'));
+    assert.equal(source.id, accountId === 'same' ? 'codex' : 'pi.codex');
+    assert.deepEqual(source.from, accountId === 'same' ? { codex: true } : { harness: 'pi', entry: 'openai-codex' });
+  }
+});
+
+test('unsupported agents and API-key harnesses remain labelled without requests', async () => {
+  const h = usageHarness({
+    '/home/test/.config/opencode/opencode.json': { model: 'anthropic/sonnet' },
+    '/home/test/.local/share/opencode/auth.json': { anthropic: { type: 'api', key: 'secret' } },
+  });
+  assert.equal((await h.route(agent('other')))[0].note, 'no usage API');
+  assert.equal((await h.route(agent('opencode')))[0].note, 'anthropic: no usage API');
+  assert.equal(h.requests.length, 0);
+});
+
+test('provider HTTP errors preserve previously fetched windows', async () => {
+  const h = usageHarness(claudeLogin, {}, 401);
+  const previous = { fetched: '2026-11-01T00:00:00Z', windows: [{ used: 20 }] };
+  h.state.set('omarchy-ai-usage.claude.claude', previous);
+  await h.refreshOne(claude);
+  const result = h.state.get('omarchy-ai-usage.claude.claude');
+  assert.equal(result.error, 'HTTP 401');
+  assert.equal(result.fetched, previous.fetched);
+  assert.deepEqual(result.windows, previous.windows);
+});
+
+test('OpenCode Claude OAuth uses access token for the usage endpoint', async () => {
+  const h = usageHarness({
+    '/home/test/.config/opencode/opencode.json': { model: 'anthropic/sonnet' },
+    '/home/test/.local/share/opencode/auth.json': { anthropic: { type: 'oauth', refresh: 'refresh-token', access: 'access-token' } },
+  });
+  const [source] = await h.route(agent('opencode'));
+  await h.refreshOne(source);
+  assert.equal(source.id, 'opencode.claude');
+  assert.equal(h.requests[0].headers.Authorization, 'Bearer access-token');
+  assert.ok(!JSON.stringify([...h.state]).includes('access-token'));
+});
+
+test('Pi Copilot OAuth uses refresh token for the usage endpoint', async () => {
+  const h = usageHarness({
+    '/home/test/.pi/agent/settings.json': { defaultProvider: 'github-copilot' },
+    '/home/test/.pi/agent/auth.json': { 'github-copilot': { type: 'oauth', refresh: 'refresh-token', access: 'access-token' } },
+  });
+  const [source] = await h.route(agent('pi'));
+  await h.refreshOne(source);
+  assert.equal(source.id, 'pi.copilot');
+  assert.equal(h.requests[0].headers.Authorization, 'token refresh-token');
+});

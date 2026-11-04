@@ -6,6 +6,7 @@ import { View, div, uniform_list } from "gpui-kit";
 import { h_flex, v_flex, InputState, Input, Scrollbar, VirtualListScrollHandle } from "gpui-base";
 import { exec, appHome, readTextFile, writeTextFile, shared, setShared, props, closeOverlay, notify, theme, run, knownAgents } from "herdr";
 import * as core from "./core.js";
+import { palette, readable } from "./palette.js";
 
 const RECORDS = "mod-manager.installed";
 const PAGE = 10;
@@ -37,47 +38,6 @@ const saveRecords = (list) => setShared(RECORDS, list);
 const cacheDir = () => `${appHome()}/.mod-manager-cache`;
 const repoPage = (source) => (/^[\w.-]+\/[\w.-]+$/.test(source) ? `https://github.com/${source}` : null);
 const short = (sha) => (sha ? sha.slice(0, 7) : "?");
-
-// WCAG 2.0 AA: text needs 4.5:1 against what it sits on. Theme colors like `dim` often fall short,
-// so each text color is moved toward the theme's foreground until it passes on every background.
-const rgb = (c) => {
-  const m = /^#([0-9a-f]{6})/i.exec(c ?? "");
-  if (!m) return null;
-  const n = parseInt(m[1], 16);
-  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
-};
-const luminance = (c) => {
-  const f = (v) => ((v /= 255) <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
-  return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]);
-};
-const contrast = (a, b) => {
-  const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
-  return (hi + 0.05) / (lo + 0.05);
-};
-const hex = (c) => `#${c.map((v) => Math.round(v).toString(16).padStart(2, "0")).join("")}`;
-function readable(color, toward, backgrounds, min = 4.5) {
-  const from = rgb(color);
-  const to = rgb(toward);
-  const bgs = backgrounds.map(rgb);
-  if (!from || !to || bgs.some((b) => !b)) return color;
-  for (let step = 0; step <= 10; step++) {
-    const c = from.map((v, i) => v + ((to[i] - v) * step) / 10);
-    if (bgs.every((b) => contrast(c, b) >= min)) return hex(c);
-  }
-  return toward;
-}
-
-function palette() {
-  const t = theme();
-  const on = [t.popover, t.selected, t.raised];
-  const text = (c) => readable(c, t.foreground, on);
-  return {
-    bg: t.popover, card: t.raised, sel: t.selected, hover: t.hover, border: t.border, input: t.input, bar: t.accent,
-    fg: t.foreground, muted: text(t.muted), dim: text(t.dim), accent: text(t.accent),
-    ok: text(t.done), warn: text(t.blocked), busy: text(t.working),
-    solid: t.solid, solidFg: readable(t.solid_foreground, t.background, [t.solid]),
-  };
-}
 
 function aiTask(mod, request) {
   const home = appHome();
@@ -807,7 +767,7 @@ export default class ModManager extends View {
   }
 
   render(_cx) {
-    const p = palette();
+    const p = palette(theme());
     return v_flex().id("root").role("dialog").accessibility_label("Mod Manager").track_focus(this.handle).size_full()
       .px(24).py(20).gap(16).bg(p.bg).text_size(12.5).text_color(p.fg)
       .on_key_down((e, cx) => this.onKey(e, cx))

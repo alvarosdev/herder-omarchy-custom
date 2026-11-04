@@ -1,6 +1,9 @@
 import { View, div, image, svg } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
-import { agents, exec, focused, home, panes, readTextFile, shared, setShared, props, openOverlay, settings, theme } from "herdr";
+import { agents, exec, focused, home, panes, shared, setShared, props, openOverlay, settings, theme } from "herdr";
+
+import { PROVIDERS, sourcesFor, fetchUsage } from "./providers.js";
+import { clock, pace, resets, resetsShort } from "./time.js";
 
 const MOD = "omarchy-ai-usage";
 const keyOf = id => `${MOD}.${id}`;
@@ -10,110 +13,13 @@ const EVERY = 5 * 60e3;
 const STALE = 12 * 60e3;
 const AMBER = "#ffb347", RED = "#ff5d6c";
 const POPUP_W = 320, GAP = 6;
-const H = 3600e3, DAY = 24 * H;
-
-const json = async path => {
-  try { return JSON.parse((await readTextFile(path.startsWith("/") ? path : `${home()}/${path}`)) ?? "null"); } catch { return null; }
-};
-const isoOf = ms => (ms ? new Date(ms).toISOString() : null);
-const spanName = s => (s >= 7 * DAY ? "Weekly limit" : `${Math.round(s / H)}-hour limit`);
-const spanShort = s => (s >= DAY ? `${Math.round(s / DAY)}d` : `${Math.round(s / H)}h`);
-const win = (span, used, resetsAt, extra) => ({ short: spanShort(span), long: spanName(span), span, used: Math.round(used), resets_at: resetsAt, ...extra });
-
-// Quota endpoints, each on the provider's own host. `creds` never leaves fetch time.
-const PROVIDERS = {
-  claude: {
-    name: "Claude",
-    color: "#D97757",
-    async usage(c) {
-      const res = await fetch("https://api.anthropic.com/api/oauth/usage", {
-        headers: { Authorization: `Bearer ${c.token}`, "anthropic-beta": "oauth-2025-04-20", Accept: "application/json" },
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      const span = { session: 5 * H, weekly_all: 7 * DAY, weekly_scoped: 7 * DAY };
-      if (Array.isArray(data.limits)) {
-        return data.limits.filter(l => span[l.kind]).map(l => {
-          const model = l.scope?.model?.display_name;
-          const w = win(span[l.kind], l.percent, l.resets_at);
-          return model ? { ...w, short: `7d ${model}`, long: `Weekly ${model} limit` } : w;
-        });
-      }
-      return [["five_hour", 5 * H], ["seven_day", 7 * DAY]]
-        .filter(([k]) => typeof data[k]?.utilization === "number")
-        .map(([k, s]) => win(s, data[k].utilization, data[k].resets_at));
-    },
-  },
-  codex: {
-    name: "Codex",
-    color: "#7A9DFF",
-    async usage(c) {
-      const res = await fetch("https://chatgpt.com/backend-api/wham/usage", {
-        headers: { Authorization: `Bearer ${c.token}`, "ChatGPT-Account-Id": c.account ?? "", Accept: "application/json" },
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const rl = (await res.json()).rate_limit ?? {};
-      return [rl.primary_window, rl.secondary_window].filter(w => w && typeof w.used_percent === "number")
-        .map(w => win(w.limit_window_seconds * 1e3, w.used_percent, isoOf(w.reset_at * 1e3)));
-    },
-  },
-  copilot: {
-    name: "Copilot",
-    color: "#a371f7",
-    async usage(c) {
-      const res = await fetch("https://api.github.com/copilot_internal/user", {
-        headers: { Authorization: `token ${c.token}`, Accept: "application/json" },
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      const label = { premium_interactions: "premium", chat: "chat", completions: "completions" };
-      return Object.entries(data.quota_snapshots ?? {}).filter(([k, q]) => label[k] && !q.unlimited)
-        .map(([k, q]) => win(30 * DAY, 100 - q.percent_remaining, data.quota_reset_date_utc,
-          { short: k === "premium_interactions" ? "mo" : label[k], long: `Monthly ${label[k]} requests`, monthly: true }));
-    },
-  },
-};
-
-// Multi-provider harnesses: which provider they use, and where their logins live.
-const HARNESS = {
-  pi: { auth: ".pi/agent/auth.json", pick: async () => (await json(".pi/agent/settings.json"))?.defaultProvider },
-  opencode: { auth: ".local/share/opencode/auth.json", pick: async () => (await json(".config/opencode/opencode.json"))?.model?.split("/")[0] },
-};
-const UNDER = { anthropic: "claude", "openai-codex": "codex", openai: "codex", "github-copilot": "copilot" };
-
-// Rebuilt from the plain source record each fetch, so the popup copy can refresh too.
-async function creds(src) {
-  const f = src.from;
-  if (f.claude) {
-    const o = (await json(`${f.claude}/.credentials.json`))?.claudeAiOauth;
-    if (!o?.accessToken) throw new Error(`no Claude Code login in ${f.claude.replace(home(), "~")}`);
-    return { token: o.accessToken, expires: o.expiresAt };
-  }
-  if (f.codex) {
-    const t = (await json(".codex/auth.json"))?.tokens;
-    if (!t?.access_token) throw new Error("no Codex ChatGPT login in ~/.codex");
-    return { token: t.access_token, account: t.account_id };
-  }
-  if (f.copilot) {
-    const gh = (await json(".config/github-copilot/oauth.json"))?.["https://github.com/login/oauth"]?.[0]?.accessToken;
-    const apps = Object.values({ ...(await json(".config/github-copilot/hosts.json")), ...(await json(".config/github-copilot/apps.json")) });
-    const token = gh ?? apps.find(a => a?.oauth_token)?.oauth_token;
-    if (!token) throw new Error("no GitHub Copilot login in ~/.config/github-copilot");
-    return { token };
-  }
-  const e = (await json(HARNESS[f.harness].auth))?.[f.entry];
-  if (e?.type !== "oauth") throw new Error(`no ${f.entry} login in ${f.harness}`);
-  return { token: src.provider === "copilot" ? e.refresh : e.access, account: e.accountId, expires: e.expires };
-}
 
 async function refreshOne(src) {
   if (!src.provider) return;
   const prev = shared(keyOf(src.id)) ?? {};
   const now = new Date().toISOString();
   try {
-    const c = await creds(src);
-    if (c.expires && c.expires < Date.now()) throw new Error(`token expired, use ${src.agent} to refresh it`);
-    setShared(keyOf(src.id), { checked: now, fetched: now, error: null, windows: await PROVIDERS[src.provider].usage(c) });
+    setShared(keyOf(src.id), { checked: now, fetched: now, error: null, windows: await fetchUsage(src) });
   } catch (e) {
     setShared(keyOf(src.id), { ...prev, checked: now, error: String(e?.message ?? e) });
   }
@@ -134,13 +40,6 @@ function visible() {
   const block = f.terminal && !list.some(v => v.terminal === f.terminal) && agents().find(a => a.address === f.terminal);
   if (block) list.push({ terminal: block.address, program: block.program, focused: true });
   return list.sort((a, b) => b.focused - a.focused);
-}
-
-const claudeDirs = [".claude", ".claude-personal"];
-const claudeLabel = dir => (dir.split("/").pop().replace(/^\.claude-?/, "") || "claude");
-
-function labelled(v, why) {
-  return { id: `none.${v.program.key}`, agent: v.program.name, label: v.program.name, icon: v.program.icon, tint: v.program.tint, note: why ?? "no usage API" };
 }
 
 export default class AiUsage extends View {
@@ -165,29 +64,6 @@ export default class AiUsage extends View {
     return dir === null ? null : (dir || `${home()}/.claude`);
   }
 
-  async route(v) {
-    const key = v.program.key, agent = v.program.name;
-    const icon = v.program.icon, tint = v.program.tint;
-    if (key === "claude" || key === "claude-code") {
-      const dir = await this.claudeDirOf(v.terminal);
-      const dirs = dir ? [dir] : claudeDirs.map(d => `${home()}/${d}`);
-      return dirs.map(d => ({ id: `claude.${claudeLabel(d)}`, provider: "claude", agent, label: claudeLabel(d), sub: d.replace(home(), "~"), icon, tint, from: { claude: d } }));
-    }
-    if (key === "codex") return [{ id: "codex", provider: "codex", agent, label: "codex", sub: "ChatGPT plan", icon, tint, from: { codex: true } }];
-    if (key === "copilot") return [{ id: "copilot", provider: "copilot", agent, label: "copilot", sub: "GitHub Copilot", icon, tint, from: { copilot: true } }];
-    const h = HARNESS[key];
-    if (!h) return [labelled(v)];
-    const entry = await h.pick();
-    const auth = (await json(h.auth))?.[entry];
-    const provider = UNDER[entry];
-    if (!provider || auth?.type !== "oauth") return [labelled(v, `${entry ?? "its provider"}: no usage API`)];
-    // Same ChatGPT account as Codex's own login: share its numbers and its fresher token.
-    if (provider === "codex" && auth.accountId && auth.accountId === (await json(".codex/auth.json"))?.tokens?.account_id) {
-      return [{ id: "codex", provider, agent, label: key, sub: `via ${entry} (Codex login)`, icon, tint, from: { codex: true } }];
-    }
-    return [{ id: `${key}.${provider}`, provider, agent, label: key, sub: `via ${entry}`, icon, tint, from: { harness: key, entry } }];
-  }
-
   // Runs when what's visible changes; keeps the last list when no agent is in view.
   sync(cx) {
     const vis = visible();
@@ -197,7 +73,7 @@ export default class AiUsage extends View {
     if (!vis.length) { if (shownList().length && !shared(SHOWN)?.idle) setShared(SHOWN, { list: shownList(), idle: true }); return; }
     cx.spawn(async () => {
       const seen = new Set(), list = [];
-      for (const v of vis) for (const s of await this.route(v)) if (!seen.has(s.id)) { seen.add(s.id); list.push(s); }
+      for (const v of vis) for (const s of await sourcesFor(v, terminal => this.claudeDirOf(terminal))) if (!seen.has(s.id)) { seen.add(s.id); list.push(s); }
       if (this.sig !== sig) return;
       if (JSON.stringify(shared(SHOWN)) !== JSON.stringify({ list, idle: false })) setShared(SHOWN, { list, idle: false });
       await refreshAll();
@@ -333,46 +209,12 @@ const title = s => {
   return s.provider && s.label.toLowerCase() !== name.toLowerCase() ? `${name} · ${s.label}` : name;
 };
 
-function pace(w) {
-  const end = Date.parse(w.resets_at);
-  if (!end || !w.span) return null;
-  return Math.min(1, Math.max(0, 1 - (end - Date.now()) / w.span));
-}
-
 // Each provider's own brand color (Claude clay, Codex blue, Copilot purple) until it nears its limit.
 function color(w, stale, t, s) {
   if (stale) return t.dim;
   if (w.used >= 95) return RED;
   if (w.used >= 80) return AMBER;
   return PROVIDERS[s?.provider]?.color ?? t.accent;
-}
-
-function clock(ms) {
-  const d = new Date(ms);
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
-}
-
-const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-
-function resets(w) {
-  // The API reports resets a fraction of a second before the hour.
-  const end = Math.round(Date.parse(w.resets_at) / 60e3) * 60e3;
-  if (!end) return "";
-  const left = Math.max(0, end - Date.now());
-  if (left < DAY) {
-    const h = Math.floor(left / H), m = Math.round((left % H) / 60e3);
-    return `resets in ${h ? `${h}h ` : ""}${m}m, at ${clock(end)}`;
-  }
-  if (w.monthly) return `resets ${new Date(end).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
-  return `resets ${DAYS[new Date(end).getDay()]} at ${clock(end)}`;
-}
-
-function resetsShort(w) {
-  const end = Math.round(Date.parse(w.resets_at) / 60e3) * 60e3;
-  if (!end) return "";
-  const left = Math.max(0, end - Date.now());
-  if (left >= 2 * DAY) return `${Math.round(left / DAY)}d`;
-  return `${Math.floor(left / H)}h ${Math.floor((left % H) / 60e3)}m`;
 }
 
 // The elapsed share of the window is drawn as a ghost fill: lit past it means running ahead of pace.
