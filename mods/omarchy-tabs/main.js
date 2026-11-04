@@ -72,7 +72,7 @@ export default class Tabs extends View {
       const liveTitle = terminal?.report?.title || report?.title || lead?.title;
       const title = (liveTitle === program?.name ? lead?.branch || liveTitle : liveTitle || "").replace(/^\[[^\]]*\]\s*[^|]*\|\s*/, "").replace(/^[^\p{L}\p{N}]+/u, "").trim();
       const status = { working: "Working", blocked: "Needs input", done: "Done", idle: "Idle" }[c.status];
-      // A tab with several agents names them all, unless the person renamed it (names.js records its own names).
+      // A tab with several agents shows their icons; the person's own tab name wins (names.js records its own names).
       const agentPanes = tabPanes.filter(p => p.program?.agent);
       const programs = [...new Map(agentPanes.map(p => [p.program.name, p.program])).values()];
       const multi = agentPanes.length > 1;
@@ -80,7 +80,7 @@ export default class Tabs extends View {
       // The icons already say which agents run here; the label carries what they work on.
       const isProgram = n => !n || tabPanes.some(p => p.program?.name === n) || n === "Claude Code";
       const folder = lead?.cwd ? (/^\/(home\/[^/]+|root)\/?$/.test(lead.cwd) ? "~" : lead.cwd.split("/").filter(Boolean).pop()) : "";
-      const work = [title, lead?.branch, folder].find(n => !isProgram(n)) ?? "";
+      const work = [title, lead?.branch, folder].find(n => !isProgram(n)) ?? (isProgram(c.name) ? "" : c.name);
       const name = personNamed && !isProgram(c.name) ? c.name : work;
       const detail = multi
         ? agentPanes.map(p => `${p.program.name}: ${({ working: "working", blocked: "needs input", done: "done" })[p.status] ?? "idle"}`).join("\n")
