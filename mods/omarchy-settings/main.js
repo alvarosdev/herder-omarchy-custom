@@ -290,7 +290,7 @@ export default class Settings extends View {
               h_flex()
                 .gap(5)
                 .items_center()
-                .child(div().text_size(12.5).text_color(on ? t.foreground : t.muted).child(LOOKS[name] ?? name))
+                .child(div().text_size(12.5).text_color(on ? t.foreground : t.muted).child(LOOKS[name] ?? name.charAt(0).toUpperCase() + name.slice(1)))
                 .when(on, (el) => el.child(svg(I("check")).size(12).text_color(t.accent))),
             );
         }),
