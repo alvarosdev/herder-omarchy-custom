@@ -86,7 +86,7 @@ export default class Tabs extends View {
       const icons = (multi ? programs.slice(0, 3) : [program]).filter(p => p?.icon);
       return h_flex().id(`tab-${c.id}`).w(240).h_full().px(10).gap(7).rounded(0).items_center().flex_none().text_size(12)
         .tooltip(`${name}\n${detail}`)
-        .relative().border_r(1).border_color(t.border)
+        .border_r(1).border_color(t.border)
         .bg(c.active ? sel : idle).text_color(c.active ? t.foreground : t.muted)
         .hover(s => s.bg(c.active ? sel : hov))
         .on_mouse_down("left", (e, cx) => { cx.stop_propagation(); this.pressed = i; if (e.click_count === 2) run("tab.rename", { id: c.id }); })
@@ -101,8 +101,7 @@ export default class Tabs extends View {
         .when(Boolean(status), el => el.child(div().flex_none().text_size(10.5).text_color(t[c.status] ?? t.muted).child(status)))
         .when(c.status === "working", el => el.child(svg("mods/workspace-chrome/spinner.svg").size(12).flex_none().text_color(t.working).spin(900)))
         .when(c.status === "blocked" || c.status === "done", el => el.child(div().size(6).rounded(0).bg(t[c.status])))
-        .when(c.active, el => el.child(div().id(`close-${c.id}`).flex_none().p(3).rounded(0).text_color(t.dim).hover(s => s.bg(hov).text_color(t.foreground)).on_mouse_down("left", stop).on_click((_e, cx) => { cx.stop_propagation(); run("tab.close", { id: c.id }); }).child(svg("mods/pane/close.svg").size(14))))
-        .when(c.active, el => el.child(div().absolute().bottom_0().left_0().right_0().h(2).bg(t.accent)));
+        .when(c.active, el => el.child(div().id(`close-${c.id}`).flex_none().p(3).rounded(0).text_color(t.dim).hover(s => s.bg(hov).text_color(t.foreground)).on_mouse_down("left", stop).on_click((_e, cx) => { cx.stop_propagation(); run("tab.close", { id: c.id }); }).child(svg("mods/pane/close.svg").size(14))));
     };
     const root = layout();
     const panel = find(root, "panel"), body = find(root, "panel-body");
@@ -114,10 +113,9 @@ export default class Tabs extends View {
     const panelButton = (id, label, icon) => {
       const on = panel && !panel.hidden && body?.active === id;
       // Full-height cells like the tabs, so the strip has one rhythm and no odd gaps.
-      return h_flex().id(`panel-${id}`).relative().h_full().px(12).gap(6).flex_none().items_center().rounded(0).border_l(1).border_color(t.border)
+      return h_flex().id(`panel-${id}`).h_full().px(12).gap(6).flex_none().items_center().rounded(0).border_l(1).border_color(t.border)
         .text_size(12).bg(on ? sel : idle).text_color(on ? t.foreground : t.muted)
         .hover(s => s.bg(on ? sel : hov)).on_mouse_down("left", stop)
-        .when(on, el => el.child(div().absolute().bottom_0().left_0().right_0().h(2).bg(t.accent)))
         .on_click(() => {
           if (on) run("layout.hide", { id: "panel" });
           else { run("layout.select", { stack: "panel-body", child: id }); run("layout.show", { id: "panel" }); }
