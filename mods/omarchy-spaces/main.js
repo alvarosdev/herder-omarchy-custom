@@ -18,6 +18,8 @@ function find(node, id) {
 
 // The sidebar's rail goes by its width, not a flag: dragging its edge narrows it too.
 const narrow = () => (find(layout(), "sidebar")?.size?.px ?? Infinity) < 160;
+// About how many characters a row's text gets at the sidebar's width (12px mono is ~7px; badge, gaps and status take ~84px).
+const room = () => Math.floor(((find(layout(), "sidebar")?.size?.px ?? 243) - 84) / 7);
 
 // Where a space is now: its first terminal's live folder, else where it was made.
 // `ps`: panes(), read once by the caller (each read copies every pane).
@@ -337,17 +339,17 @@ export default class Spaces extends View {
     });
   }
 
-  // Only what's unusual, after the name: "herdr \u00b7 spike \u21912 \u21931". The repo or
-  // branch goes when the name already says it (a worktree is named after its branch),
-  // and master/main go: nearly every space is on one.
+  // After the name: "herdr \u00b7 spike \u21912 \u21931". The repo or branch goes when the name
+  // already says it (a worktree is named after its branch). master/main show only when there's room.
   gitTail(g, tree, name, t) {
     const raw = g.branch ?? "detached";
     const same = (a) => a.toLowerCase() === name.toLowerCase();
-    const branch = same(raw) || raw === "master" || raw === "main" ? "" : raw;
     const repo = tree || same(g.name) ? "" : g.name;
-    const where = [repo, branch].filter(Boolean).join(" \u00b7 ");
-    // Narrow sidebar: a branch cut to "de…" says nothing, so drop it when it can't fit whole.
-    const fits = name.length + where.length <= 22;
+    const join = (branch) => [repo, branch].filter(Boolean).join(" \u00b7 ");
+    // A cut-off "de…" says nothing: drop what can't show 12 characters (or all of itself).
+    const fits = (w) => room() - name.length - 3 >= Math.min(w.length, 12);
+    const usual = raw === "master" || raw === "main";
+    const where = [join(same(raw) ? "" : raw), join(same(raw) || usual ? "" : raw), join("")].find(fits) ?? "";
     return h_flex()
       .flex_1()
       .min_w(0)
@@ -356,7 +358,7 @@ export default class Spaces extends View {
       .items_center()
       .text_size(11.5)
       .text_color(t.dim)
-      .when(Boolean(where) && fits, (el) => el.child(div().min_w(0).truncate().child(where)))
+      .when(Boolean(where), (el) => el.child(div().min_w(0).truncate().child(where)))
       .when(g.ahead > 0, (el) => el.child(div().flex_none().text_color(t.ansi2).child(`\u2191${g.ahead}`)))
       .when(g.behind > 0, (el) => el.child(div().flex_none().text_color(t.ansi1).child(`\u2193${g.behind}`)));
   }
@@ -416,7 +418,7 @@ export default class Spaces extends View {
             .when(on, el => el.bg(t.accent).text_color(t.accent_foreground))
             .when(!on, el => el.border(1).border_color(t.border).text_color(t.dim))
             .child(String(i + 1))))
-          .child(div().flex_shrink(0).max_w(150).truncate().text_color(t.foreground).child(w.name))
+          .child(div().flex_shrink(0).max_w(room() * 7).truncate().text_color(t.foreground).child(w.name))
           .child(g ? this.gitTail(g, tree, w.name, t) : div().flex_1())
           // A space with an agent working, waiting on you, or finished gets a square in that status color.
           .when(!tree && ["working", "blocked", "done"].includes(w.status), el => el.child(div().size(6).flex_none().ml(6).bg(tone(t, w.status)))),

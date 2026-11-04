@@ -16,6 +16,8 @@ function find(node, id) {
 
 // The sidebar's rail goes by its width, not a flag: dragging its edge narrows it too.
 const narrow = () => (find(layout(), "sidebar")?.size?.px ?? Infinity) < 160;
+// About how many characters a row's text gets at the sidebar's width (12px mono is ~7px; icon, time and status take ~120px).
+const room = () => Math.floor(((find(layout(), "sidebar")?.size?.px ?? 243) - 120) / 7);
 
 // To the rail (on macOS wide enough for the traffic lights), or back to the width it had.
 function toggleSidebar() {
@@ -357,9 +359,12 @@ export default class Agents extends View {
       // Under a space header the space goes without saying; an automatic tab number says nothing.
       // Without a space header above (priority, pinned) the row names its space.
       const full = byPriority || isPinned;
-      const name = full ? place(a) || label(a) : more ?? (place(a) || label(a));
-      // Two cut-off halves ("flexspring-wizar… · …") read as broken; a long name drops the detail, a short one keeps it.
-      const fitsMore = (name?.length ?? 0) <= 14;
+      const where = place(a) || label(a);
+      const name = full ? where : more ?? where;
+      // The other half: the task beside the folder (else its space, when that differs), or the folder beside the task.
+      const also = full ? more ?? (a.space_name !== where ? a.space_name : null) : more ? where : null;
+      // Two cut-off halves ("flexspring-wizar… · …") read as broken: the second shows only when both fit whole.
+      const fitsMore = Boolean(also) && also !== name && (name?.length ?? 0) + also.length + 3 <= room();
       return h_flex()
         .id(`ag-${a.address}`)
         .relative()
@@ -387,8 +392,8 @@ export default class Agents extends View {
             cx.notify();
           })).child(pic)))
         .child(h_flex().flex_1().min_w(0).gap(5).items_center()
-          .child(div().min_w(0).max_w(full && more && fitsMore ? 120 : 200).truncate().text_color(idle ? t.muted : t.foreground).child(name))
-          .when(full && Boolean(more) && fitsMore, el => el.child(div().flex_1().min_w(0).truncate().text_color(t.dim).child(`\u00b7 ${more}`))))
+          .child(div().min_w(0).flex_shrink(0).max_w(room() * 7).truncate().text_color(idle ? t.muted : t.foreground).child(name))
+          .when(fitsMore, el => el.child(div().flex_1().min_w(0).truncate().text_color(t.dim).child(`\u00b7 ${also}`))))
         .when(Boolean(machine), el => el.child(div().text_size(10).text_color(t.dim).child(machine)))
         .when(subs.length > 0, el => el.child(fold(a, subs)))
         .when(this.hovered === a.address, el => el.child(pin))
