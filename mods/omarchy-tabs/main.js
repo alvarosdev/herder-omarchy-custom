@@ -98,7 +98,7 @@ export default class Tabs extends View {
           else run("tab.select", { id: c.id });
         })
         .on_mouse_down("right", (_e, cx) => { cx.stop_propagation(); openOverlay({ mod: "menu", kind: "popup", width: 200, props: { tab: "tab", target: { id: c.id, space: space.id } } }); })
-        .when(icons.length > 0, el => el.child(h_flex().flex_none().gap(2).children(icons.map(p => p.tint ? svg(p.icon).size(14).text_color(t.muted) : image(p.icon).size(14)))))
+        .when(icons.length > 0, el => el.child(h_flex().flex_none().gap(6).children(icons.map(p => p.tint ? svg(p.icon).size(14).text_color(t.muted) : image(p.icon).size(14)))))
         .child(div().flex_1().min_w(0).truncate().child(c.zoomed ? `${name} Z` : name))
         .when(Boolean(status), el => el.child(div().flex_none().text_size(10.5).text_color(t[c.status] ?? t.muted).child(status)))
         .when(c.status === "working", el => el.child(svg("mods/workspace-chrome/spinner.svg").size(12).flex_none().text_color(t.working).spin(900)))
