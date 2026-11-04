@@ -33,10 +33,6 @@ const base = (path) => path.replace(/\/+$/, "").split("/").pop();
 const FALLBACK = 60000;
 
 // A space speaks up only when something in it needs you.
-export function glyph(status) {
-  return status === "blocked" || status === "done" ? "●" : "·";
-}
-
 export function tone(t, status) {
   return t[status] ?? t.unknown;
 }
@@ -311,7 +307,7 @@ export default class Spaces extends View {
       const connected = !m || machine?.state === "connected";
       const rebuilt = this.rebuilt(machine) || !!repair;
       const folded = this.folded.has(m);
-      const head = h_flex().id(`machine-${m ?? "local"}`).h(24).flex_none().px(collapsed ? 2 : 8).gap(7).items_center().text_size(11).text_color(t.dim)
+      const head = h_flex().id(`machine-${m ?? "local"}`).h(24).flex_none().px(collapsed ? 0 : 8).when(collapsed, el => el.w(30).justify_center()).gap(7).items_center().text_size(11).text_color(t.dim)
         .cursor_pointer().hover(s => s.bg(t.foreground + "14").text_color(t.foreground))
         .on_click((_e, cx) => {
           folded ? this.folded.delete(m) : this.folded.add(m);
@@ -427,18 +423,29 @@ export default class Spaces extends View {
       );
   }
 
+  // The 44px rail: a square badge like the wide row's, status as a corner square.
   compact({ w, i }, t) {
-    return h_flex()
+    const on = w.active;
+    return div()
       .id(`space-${w.id}`)
-      .h(26)
+      .relative()
+      .size(30)
       .flex_none()
+      .flex()
+      .items_center()
       .justify_center()
-      .gap(4)
-      .when(w.active, (el) => el.bg(t.foreground + "2e"))
-      .hover((s) => s.bg(t.foreground + "14"))
+      .rounded(0)
+      .border(1)
+      .text_size(12)
+      .font_bold()
+      .tooltip(w.name)
+      .when(on, (el) => el.bg(t.accent).border_color(t.accent).text_color(t.accent_foreground))
+      .when(!on, (el) => el.border_color(t.border).text_color(t.muted).hover((s) => s.bg(t.foreground + "14").border_color(t.foreground + "40").text_color(t.foreground)))
       .on_click(() => run("space.select", { id: w.id }))
-      .child(div().text_color(w.active ? t.foreground : t.muted).child(String(i + 1)))
-      .child(div().text_color(tone(t, w.status)).child(glyph(w.status)));
+      .on_mouse_down("right", () => this.menu(w))
+      .child(String(i + 1))
+      .when(["working", "blocked", "done"].includes(w.status), (el) => el.child(div().absolute().top(2).right(2).size(5).bg(on ? t.accent_foreground : tone(t, w.status))
+        .when(w.status === "working", (d) => d.loop("opacity", { from: 0.35, to: 1, period: 1200 }))));
   }
 
   render() {
@@ -457,11 +464,11 @@ export default class Spaces extends View {
     }
     if (changed) setShared("space.colors", kept);
     return v_flex().size_full().min_h(0).bg(t.chrome).pt(10).text_size(12)
-      .child(h_flex().h(26).flex_none().pl(18).pr(10).items_center().justify_between().text_size(11).text_color(t.dim)
+      .child(h_flex().h(26).flex_none().when(collapsed, el => el.justify_center()).when(!collapsed, el => el.pl(18).pr(10).justify_between()).items_center().text_size(11).text_color(t.dim)
         .when(!collapsed, el => el.child(`spaces ${sp.length}`))
         .child(div().id("space-new").size(22).flex_none().flex().items_center().justify_center().rounded(0).border(1).border_color(t.foreground + "00").hover(s => s.bg(t.foreground + "14").border_color(t.foreground + "40").text_color(t.foreground))
           .on_click(() => run("space.new")).child(svg("mods/omarchy-chrome/plus.svg").size(14))))
-      .child(v_flex().flex_1().min_h(0).px(10).pt(6).pb(10).gap(2).overflow_y_scrollbar().mode("always")
+      .child(v_flex().flex_1().min_h(0).px(collapsed ? 0 : 10).pt(6).pb(10).gap(collapsed ? 6 : 2).when(collapsed, el => el.items_center()).overflow_y_scrollbar().mode("always")
         .on_mouse_up("left", (_e, cx) => { this.pressed = null; cx.notify(); })
         .children(this.grouped(t, collapsed)));
   }

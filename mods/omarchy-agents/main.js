@@ -310,18 +310,29 @@ export default class Agents extends View {
       const more = detail.get(a.address);
       // An agent on another machine (`vps/t7`) says which.
       const machine = a.address.includes("/") ? a.address.split("/")[0] : null;
+      // The 44px rail: the program's icon in a square, status as a corner square ("!" when it needs you).
       if (collapsed) {
-        return h_flex()
+        const corner = a.status === "blocked" ? div().absolute().top(1).right(1).size(11).bg(t.blocked).text_size(8.5).font_bold().text_color(t.background).flex().items_center().justify_center().child("!")
+          : ["working", "done", "idle"].includes(a.status) ? div().absolute().top(2).right(2).size(5).when(a.status === "idle", (d) => d.border(1).border_color(t.idle ?? t.dim)).when(a.status !== "idle", (d) => d.bg(t[a.status] ?? t.dim))
+            .when(a.status === "working", (d) => d.loop("opacity", { from: 0.35, to: 1, period: 1200 })) : null;
+        return div()
           .id(`ag-${a.address}`)
-          .h(26)
-          .px(8)
+          .relative()
+          .size(30)
           .flex_none()
+          .flex()
           .items_center()
-          .gap(4)
-          .hover((s) => s.bg(t.foreground + "14"))
+          .justify_center()
+          .rounded(0)
+          .border(1)
+          .text_size(11)
+          .font_bold()
+          .tooltip([label(a), more, machine].filter(Boolean).join(" \u00b7 "))
+          .when(a.focused, (el) => el.bg(t.foreground + "2e").border_color(t.foreground + "40"))
+          .when(!a.focused, (el) => el.border_color(t.border).hover((s) => s.bg(t.foreground + "14").border_color(t.foreground + "40")))
           .on_click(() => run("pane.focus", { pane: a.pane }))
-          .child(div().flex_1().min_w(0).whitespace_nowrap().text_right().text_color(t.muted).child(String(i + 1)))
-          .child(h_flex().w(14).flex_none().items_center().justify_center().child(this.status(t, a, true)));
+          .child(pic ?? div().text_color(t.muted).child(String(i + 1)))
+          .when(Boolean(corner), (el) => el.child(corner));
       }
       const when = this.since(a);
       const idle = a.status === "idle" && !a.focused;
@@ -458,21 +469,29 @@ export default class Agents extends View {
       .when(list.length === 0 && !collapsed, (el) =>
         el.child(div().px(12).text_size(12).text_color(t.dim).child("No agent status yet. Agents show up here when they report their status. Older versions and agents inside tmux may not.")),
       )
-      .child(v_flex().id("ag-list").flex_1().min_h(0).px(collapsed ? 0 : 10).pb(10).overflow_y_scrollbar().mode("always").children(rows))
+      .child(v_flex().id("ag-list").flex_1().min_h(0).px(collapsed ? 0 : 10).when(collapsed, (el) => el.pt(10).gap(6).items_center()).pb(10).overflow_y_scrollbar().mode("always").children(rows))
       .when(collapsed, (el) =>
         el.child(
           h_flex()
-            .h(28)
+            .h(40)
+            .flex_none()
             .items_center()
             .justify_center()
             .child(
               div()
                 .id("collapse")
-                .text_size(13)
-                .text_color(t.dim)
-                .hover((s) => s.text_color(t.foreground))
+                .size(30)
+                .flex()
+                .items_center()
+                .justify_center()
+                .border(1)
+                .border_color(t.foreground + "00")
+                .bg(t.foreground + "0a")
+                .text_color(t.muted)
+                .tooltip("Expand sidebar")
+                .hover((s) => s.bg(t.foreground + "14").border_color(t.foreground + "40").text_color(t.foreground))
                 .on_click(toggleSidebar)
-                .child("»"),
+                .child(svg("mods/omarchy-chrome/chevron-right.svg").size(14)),
             ),
         ),
       );

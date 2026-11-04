@@ -76,7 +76,7 @@
       "type": "row",
       "padding": 10,
       "gap": 10,
-      "resizable": false,
+      "resizable": true,
       "children": [
         {
           "id": "sidebar",
