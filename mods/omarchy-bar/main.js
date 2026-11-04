@@ -1,6 +1,6 @@
 import { View, div, svg } from "gpui-kit";
 import { h_flex } from "gpui-base";
-import { spaces, agents, theme, run, window, props, layout, shared, setShared } from "herdr";
+import { spaces, agents, theme, run, window, props, layout, shared, setShared, focused, home } from "herdr";
 
 const own = (el) => el.on_mouse_down("left", (_e, cx) => cx.stop_propagation());
 
@@ -35,6 +35,8 @@ export default class OmarchyBar extends View {
     const list = spaces();
     const blocked = new Set(agents().filter((a) => a.status === "blocked").map((a) => a.space));
     const space = list.find((s) => s.active);
+    const cwd = focused()?.cwd;
+    const here = cwd ? (cwd === home() ? "~" : cwd.split("/").filter(Boolean).pop()) : null;
     const sep = () => div().flex_none().mx(10).text_color(t.border).child("│");
     // macOS draws its window buttons over this corner; leave them room.
     const w = window();
@@ -52,6 +54,8 @@ export default class OmarchyBar extends View {
       }))
       .when(Boolean(space), (el) => el.child(sep())
         .child(div().flex_none().text_color(t.foreground).child(space.name))
+        // The focused terminal may have moved away from the folder its space was named after.
+        .when(Boolean(here) && here !== space.name, (e) => e.child(div().flex_none().ml(8).text_color(t.muted).child(here)))
         .when(Boolean(space.branch), (e) => e.child(div().flex_none().ml(8).text_color(t.dim).child(space.branch)))
         .when(Boolean(space.machine), (e) => e.child(div().flex_none().ml(8).text_color(t.dim).child(`@${space.machine}`))));
   }

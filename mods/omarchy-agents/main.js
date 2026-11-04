@@ -3,7 +3,7 @@
 
 import { View, div, image, svg } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
-import { agents, terminals, panes, focused, spaces, run, theme, shared, setShared, setAgentOrder, openOverlay, closeOverlay, props, window, layout } from "herdr";
+import { agents, terminals, panes, focused, spaces, run, theme, shared, setShared, setAgentOrder, openOverlay, closeOverlay, props, window, layout, home } from "herdr";
 
 function find(node, id) {
   if (node?.id === id) return node;
@@ -279,7 +279,8 @@ export default class Agents extends View {
     // agent's own title, never an automatic tab number unless two rows would
     // otherwise read the same.
     // Read the pane snapshot once: every host read copies the whole list into JS.
-    const leads = leadPanes(panes());
+    const allPanes = panes();
+    const leads = leadPanes(allPanes);
     const tabLabels = new Map(spaces().flatMap(s => s.tabs).map(tab => [tab.id, title(tab, leads.get(tab.id))]));
     const labels = new Map(list.map(a => [a.address, tabLabels.get(a.tab) ?? (a.title || a.program?.name || "")]));
     const label = (a) => labels.get(a.address);
@@ -292,9 +293,16 @@ export default class Agents extends View {
     };
     const detail = new Map(list.map(a => [a.address, work(a)]));
     const seen = {};
-    for (const a of list) { const k = `${a.space_name}\u0000${detail.get(a.address) ?? ""}`; seen[k] = (seen[k] ?? 0) + 1; }
+    // Where the agent is now (its pane's live folder), not where its space was started.
+    const cwdOf = new Map(allPanes.map(p => [p.pane, p.cwd]));
+    const place = a => {
+      const c = cwdOf.get(a.pane);
+      if (!c) return a.space_name;
+      return c === home() ? "~" : c.split("/").filter(Boolean).pop() || a.space_name;
+    };
+    for (const a of list) { const k = `${place(a)}\u0000${detail.get(a.address) ?? ""}`; seen[k] = (seen[k] ?? 0) + 1; }
     for (const a of list) {
-      if (detail.get(a.address) == null && seen[`${a.space_name}\u0000`] > 1 && !isProgram(a, label(a))) detail.set(a.address, label(a));
+      if (detail.get(a.address) == null && seen[`${place(a)}\u0000`] > 1 && !isProgram(a, label(a))) detail.set(a.address, label(a));
     }
 
     const row = (a, i, subs = []) => {
@@ -338,7 +346,7 @@ export default class Agents extends View {
       // Under a space header the space goes without saying; an automatic tab number says nothing.
       // Without a space header above (priority, pinned) the row names its space.
       const full = byPriority || isPinned;
-      const name = full ? a.space_name || label(a) : more ?? (a.space_name || label(a));
+      const name = full ? place(a) || label(a) : more ?? (place(a) || label(a));
       // Two cut-off halves ("flexspring-wizar… · …") read as broken; a long name drops the detail, a short one keeps it.
       const fitsMore = (name?.length ?? 0) <= 14;
       return h_flex()
