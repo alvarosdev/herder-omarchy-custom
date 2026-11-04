@@ -3,7 +3,7 @@ import { View, div, svg, image } from "gpui-kit";
 import { h_flex } from "gpui-base";
 import { syncNames } from "./names.js";
 import { renderPaneHeader } from "./pane.js";
-import { spaces, panes, terminals, props, run, openOverlay, theme, window, shared, layout, settings } from "herdr";
+import { spaces, panes, terminals, props, run, openOverlay, theme, shared, layout } from "herdr";
 
 function find(node, id) {
   if (node?.id === id) return node;
@@ -106,11 +106,7 @@ export default class Tabs extends View {
         .when(c.active, el => el.child(div().id(`close-${c.id}`).flex_none().p(3).rounded(0).text_color(t.dim).hover(s => s.bg(hov).text_color(t.foreground)).on_mouse_down("left", stop).on_click((_e, cx) => { cx.stop_propagation(); run("tab.close", { id: c.id }); }).child(svg("mods/pane/close.svg").size(14))))
         .when(c.active, el => el.child(div().absolute().bottom_0().left_0().right_0().h(2).bg(t.accent)));
     };
-    const root = layout(), sidebar = find(root, "sidebar"), w = window();
-    // Old saved rails and a dragged-narrow sidebar can be smaller than the window buttons.
-    const lightsPadding = w?.platform === "macos" && w.titlebar === "none" && !w.fullscreen && root?.traffic_lights
-      ? Math.max(10, (root.traffic_lights[0] + 64) / settings().zoom - (sidebar?.hidden ? 0 : sidebar?.size?.px ?? 0))
-      : 10;
+    const root = layout();
     const panel = find(root, "panel"), body = find(root, "panel-body");
     const enabled = panel && body
       ? [...(shared("workspace.panels") ?? ["files", "changes"]), "graph"].filter(id => Boolean(find(body, id)))
@@ -127,7 +123,7 @@ export default class Tabs extends View {
           else { run("layout.select", { stack: "panel-body", child: id }); run("layout.show", { id: "panel" }); }
         }).child(svg(icon).size(14)).child(label);
     };
-    return h_flex().size_full().min_w(0).pr(6).pl(lightsPadding).gap(0).items_center().bg(t.chrome)
+    return h_flex().size_full().min_w(0).pr(6).gap(0).items_center().bg(t.chrome)
       .on_mouse_up("left", () => { this.pressed = null; })
       .on_scroll_wheel(e => { if (Math.abs(e.delta.y) >= 1) run(e.delta.y > 0 ? "tab.prev" : "tab.next"); })
       .child(h_flex().id("tab-scroll").max_w(shown.length * 241).flex_shrink(1).min_w(0).h_full().items_center().gap(0).overflow_x_scrollbar().children(shown.map(item)))

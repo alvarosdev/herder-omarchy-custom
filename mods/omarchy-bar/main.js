@@ -36,7 +36,9 @@ export default class OmarchyBar extends View {
     const blocked = new Set(agents().filter((a) => a.status === "blocked").map((a) => a.space));
     const space = list.find((s) => s.active);
     const sep = () => div().flex_none().mx(10).text_color(t.border).child("│");
-    return row.pl(4)
+    // macOS draws its window buttons over this corner; leave them room.
+    const w = window();
+    return row.pl(w?.platform === "macos" && !w.fullscreen ? 76 : 4)
       .child(own(div().id("menu").flex_none().size(24).mr(6).flex().items_center().justify_center().cursor_pointer()
         .hover((s) => s.bg(t.hover)).on_click(() => run("mod.open", { name: "omarchy-palette" }))
         .text_color(t.accent).child(svg("mods/omarchy-bar/omarchy.svg").size(14))))

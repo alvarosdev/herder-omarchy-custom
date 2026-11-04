@@ -350,7 +350,6 @@ export default class Agents extends View {
         .rounded(0)
         .border(1)
         .border_color(t.foreground + "00")
-        .bg(t.foreground + "0a")
         .items_center()
         .gap(8)
         .when(a.focused, (el) => el.bg(t.foreground + "2e").child(div().absolute().left(-1).top(-1).bottom(-1).w(2).bg(t.accent)))
