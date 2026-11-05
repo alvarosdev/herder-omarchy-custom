@@ -45,7 +45,7 @@ Top to bottom, left to right. Sizes are logical px at zoom 1. Colors below are t
 - **Mods** (all in `mods/`):
   - `omarchy-bar`, `omarchy-ai-usage`: new. `omarchy-bar` also ties the wallpaper to the theme: on any theme change it sets the layout background to the theme's first wallpaper (`layout.set`), and its `next-wallpaper` command cycles the theme's wallpapers.
   - `omarchy-themes`: new. Theme picker; ↑/↓, Enter, Esc.
-  - `omarchy-keys`: new. Every binding from `keys()`, grouped This layout / Everywhere / In a terminal (other sections by name), key chips and the raw action; a filter box; global keys the layout also binds read `overridden here`. Opened from the footer's Keybindings row (footer 106px for three rows).
+  - `omarchy-keys`: new. Every binding from `keys()`, grouped This layout / Everywhere / In a terminal (other sections by name), key chips and the raw action; a filter box; global keys the layout also binds read `overridden here`. Opened with `super-k` (Omarchy's key) or the footer's Keybindings row (footer 106px for three rows).
   - `omarchy-chrome`, `omarchy-spaces`, `omarchy-agents`: clones of Herdr's `workspace-chrome`, `spaces` and `agents`.
   - `omarchy-palette`, `omarchy-settings`: copies of Herdr's `frame/palette` and `frame/settings`, with `rounded(0)`.
   - `omarchy-mod-manager`: install, update, remove and AI-edit mods, Marketplace tab.

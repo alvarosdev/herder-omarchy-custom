@@ -6,6 +6,7 @@
     "super-ctrl-space": "omarchy-bar.next-wallpaper",
     "super-ctrl-w": "omarchy-bar.next-wallpaper",
     "super-ctrl-shift-space": "mod.open:omarchy-themes",
-    "super-ctrl-t": "mod.open:omarchy-themes"
+    "super-ctrl-t": "mod.open:omarchy-themes",
+    "super-k": "mod.open:omarchy-keys"
   }
 }
