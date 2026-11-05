@@ -1,6 +1,6 @@
 # Omarchy
 
-The Omarchy desktop look for Herdr: square tiles with 2px borders over the Tokyo Night wallpaper, under a 30px top bar with space numbers, a live AI-usage meter and the window buttons. The resizable sidebar folds into a 44px rail. A side panel has colored file icons and Git changes and switches branches. The palette, Settings and Mods manager open as square dialogs. All 23 Omarchy themes come with it.
+The Omarchy desktop look for Herdr: flat, square, bordered tiles floating over a wallpaper. A thin top bar shows your spaces, live AI usage for the agents on screen and the window buttons. The sidebar lists spaces and agents with their status, resizes, and folds into an icon rail. A side panel browses files and Git changes, commits, pushes and switches branches. The palette, Settings and a mod manager match the look, and every Omarchy color theme comes with it.
 
 ![Omarchy](preview.png)
 
