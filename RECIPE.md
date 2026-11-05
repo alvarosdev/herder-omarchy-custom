@@ -1,6 +1,6 @@
 # Omarchy
 
-A Herdr window that looks like the Omarchy desktop (basecamp/omarchy on Hyprland). A thin 30px top bar carries the space numbers, a live AI-usage meter and the window buttons. Below it, square tiles with 2px borders float over the Tokyo Night wallpaper with 10px gaps: separate tiles for spaces, agents and the settings footer, a tab strip, the panes, and a side panel with colored file icons and Git changes. The command palette, Settings and a Mods manager open as square Omarchy-styled dialogs. All 23 Omarchy color themes come with it.
+The Omarchy desktop look for Herdr: square tiles with 2px borders over the Tokyo Night wallpaper, under a 30px top bar with space numbers, a live AI-usage meter and the window buttons. The resizable sidebar folds into a 44px rail. A side panel has colored file icons and Git changes and switches branches. The palette, Settings and Mods manager open as square dialogs. All 23 Omarchy themes come with it.
 
 ![Omarchy](preview.png)
 
