@@ -39,17 +39,28 @@ The agent copies the layout, mods, themes and wallpapers into `~/.config/herdr-a
 
 ## Keys
 
-These keys work only in the Omarchy layout:
+These keys work only in the Omarchy layout. They follow Omarchy: its Herdr keymap and its desktop keys. Keys that GNOME already uses are left out. `super-k` lists every key.
 
 | Key | Action |
 | --- | --- |
-| `ctrl-shift-p` | Open the command palette |
+| `alt-1` … `alt-9` | Go to tab 1 to 9 |
+| `alt-left` / `alt-right` | Previous / next tab |
+| `alt-up` / `alt-down` | Previous / next space |
+| `alt-enter` / `alt-shift-enter` | Split the pane right / down |
+| `super-return` | New terminal |
+| `super-w` | Close the pane |
+| `super-f` | Zoom the pane |
+| `super-c` / `super-v` | Copy / paste |
+| `super-alt-space` | Open the command palette (also `ctrl-shift-p`) |
+| `super-shift-space` | Show or hide the top bar |
+| `super-k` | Show every key binding |
+| `super-ctrl-t` or `super-ctrl-shift-space` | Pick a theme |
+| `super-ctrl-w` or `super-ctrl-space` | Change to the theme's next wallpaper |
 | `ctrl-,` | Open Settings |
 | `ctrl-shift-m` | Open the mod manager |
-| `super-k` | Show every key binding (as in Omarchy) |
-| `super-ctrl-shift-space` or `super-ctrl-t` | Pick a theme (as in Omarchy) |
-| `super-ctrl-space` or `super-ctrl-w` | Change to the theme's next wallpaper (as in Omarchy) |
 | `ctrl-shift-l` | Change to a different layout |
+
+Left out because GNOME uses them: Omarchy Herdr's `ctrl-space` prefix (input method), `alt-esc` (cycle windows), `ctrl-alt-arrows` and `ctrl-alt-shift-arrows` (workspaces). Herdr's own `alt-h/j/k/l` still move between panes.
 
 ## What is inside
 
