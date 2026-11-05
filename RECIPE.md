@@ -61,6 +61,7 @@ Top to bottom, left to right. Sizes are logical px at zoom 1. Colors below are t
 
 ## Watch out
 
+- **Reopen closed tab**: exact pane trees and sizes need `python3` and `hc connect`. Without them, reopening uses a basic row of panes. Agent session detection reads Linux `/proc` and local session files.
 - **Network and programs**: check these before installing.
   - `omarchy-ai-usage` reads login files only at fetch time and never stores tokens:
     - `~/.claude*/.credentials.json`

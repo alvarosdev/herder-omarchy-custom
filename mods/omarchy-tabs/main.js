@@ -3,8 +3,8 @@ import { View, div, svg, image } from "gpui-kit";
 import { h_flex } from "gpui-base";
 import { syncNames } from "./names.js";
 import { renderPaneHeader } from "./pane.js";
-import { spaces, panes, terminals, props, run, openOverlay, theme, shared, setShared, layout, exec, readTextFile, home, nextCommand, notify } from "herdr";
-import { SCAN, parseScan, quote, resumeCommand, argvOf } from "./reopen.js";
+import { spaces, panes, terminals, props, run, openOverlay, theme, shared, setShared, layout, exec, readTextFile, home, appHome, nextCommand, notify } from "herdr";
+import { resumeCommand, argvOf } from "./reopen.js";
 
 // The last closed tabs (newest last), kept across restarts for ctrl-alt-shift-t.
 const CLOSED = "omarchy-tabs.closed";
@@ -25,18 +25,26 @@ export default class Tabs extends View {
     this.pressed = null;
     this.panels = JSON.parse(localStorage.getItem("panels") ?? "{}");
     this.snap = {};
+    this.roots = {};
+    this.commands = {};
+    this.shells = {};
+    cx.spawn(async (cx) => {
+      this.source = await readTextFile(`${appHome()}/mods/omarchy-tabs/reopen.py`).catch(() => null);
+      this.refresh(cx);
+    });
+    // Poll gently for pure resizes; tab, pane and status changes refresh immediately.
+    cx.timer.every(10000, cx => this.refresh(cx));
     // Each step touches cx, so a reloaded strip's old loop ends instead of eating the key.
     cx.spawn(async (cx) => {
       for (;;) {
-        if ((await nextCommand()) === "reopen") this.reopen();
+        if ((await nextCommand()) === "reopen") this.reopen(cx);
         cx.notify();
       }
     });
   }
 
-  // Keeps what every tab runs, so a tab that goes can come back: each pane's folder and
-  // the command that resumes its agent (Claude by session, Codex by its session file).
   track(cx) {
+    if (this.reopening) return;
     const ids = new Set(spaces().flatMap(s => s.tabs.map(t => t.id)));
     if (this.known) {
       const gone = [...this.known].filter(id => !ids.has(id) && this.snap[id]?.panes.length);
@@ -44,41 +52,74 @@ export default class Tabs extends View {
       for (const id of gone) delete this.snap[id];
     }
     this.known = ids;
-    const sig = JSON.stringify(panes().filter(p => p.terminal).map(p => [p.tab, p.terminal, p.cwd, p.program.key, p.status]));
+    for (const s of spaces()) for (const t of s.tabs) {
+      const list = panes().filter(p => p.tab === t.id && p.terminal).map(p => ({
+        terminal: p.terminal.split('/').pop(), cwd: p.cwd, cmd: this.commands[p.terminal] ?? null,
+      }));
+      this.snap[t.id] = { space: s.id, machine: s.machine, spaceName: s.named ? s.name : null,
+        name: t.named ? t.name : null, index: t.index, shell: this.shells[s.machine] ?? '/bin/sh',
+        root: this.roots[t.id], panes: list };
+    }
+    const sig = JSON.stringify([spaces().map(s => s.tabs), panes().map(p => [p.tab, p.terminal, p.cwd, p.program?.key, p.status])]);
     if (sig === this.sig) return;
     this.sig = sig;
-    cx.spawn(async () => {
-      const r = await exec("sh", ["-c", SCAN]).catch(() => null);
-      const { shell, procs } = parseScan(r?.stdout ?? "");
-      const snap = {};
-      for (const s of spaces()) for (const t of s.tabs) {
-        const list = [];
-        for (const p of panes().filter(p => p.tab === t.id && p.terminal)) {
-          const proc = procs[p.terminal];
-          const dir = proc?.dir || `${home()}/.claude`;
-          let session = null;
-          if (proc?.program === "claude") {
-            const text = await readTextFile(`${dir}/sessions/${proc.pid}.json`).catch(() => null);
-            try { session = JSON.parse(text ?? "null")?.sessionId ?? null; } catch { /* mid-write: --continue */ }
+    this.refresh(cx);
+  }
+
+  refresh(cx) {
+    if (!this.source || this.scanning || this.reopening) return;
+    this.scanning = true;
+    cx.spawn(async (cx) => {
+      try {
+        for (const machine of new Set(spaces().map(s => s.machine))) {
+          const r = await exec('python3', ['-c', this.source, 'scan'], { on: machine });
+          if (r.code !== 0) throw new Error(r.stderr);
+          const { shell, procs, document } = JSON.parse(r.stdout);
+          this.shells[machine] = shell;
+          for (const s of spaces().filter(s => s.machine === machine)) for (const t of s.tabs) {
+            const saved = document?.spaces?.find(x => x.id === s.id.split('/').pop())?.tabs?.find(x => x.id === t.id.split('/').pop());
+            if (saved) this.roots[t.id] = saved.root;
+            for (const p of panes().filter(p => p.tab === t.id && p.terminal)) {
+              const proc = procs[p.terminal.split('/').pop()];
+              const cmd = resumeCommand(proc, proc?.session, home());
+              // Keep a known session through a transient session-file write.
+              if (cmd && (proc.session || !this.commands[p.terminal])) this.commands[p.terminal] = cmd;
+              if (!proc && !p.program?.agent) delete this.commands[p.terminal];
+            }
           }
-          // Agents this can't resume start again; shells come back in their folder.
-          const cmd = resumeCommand(proc, session, home()) ?? (p.program.agent && !proc ? quote(p.program.key === "claude-code" ? "claude" : p.program.key) : null);
-          list.push({ cwd: p.cwd, cmd });
         }
-        snap[t.id] = { space: s.id, name: t.named ? t.name : null, shell, panes: list };
+        cx.notify();
+      } catch (e) {
+        console.log(`Reopen snapshot: ${e}`);
+      } finally {
+        this.scanning = false;
       }
-      this.snap = snap;
     });
   }
 
-  reopen() {
+  reopen(cx) {
+    if (this.reopening) return;
     const closed = shared(CLOSED) ?? [], last = closed[closed.length - 1];
     if (!last) return notify({ title: "No closed tab to reopen" });
     setShared(CLOSED, closed.slice(0, -1));
-    const [first, ...rest] = last.panes;
-    const space = spaces().some(s => s.id === last.space) ? last.space : undefined;
-    run("tab.new", { space, name: last.name ?? undefined, folder: first.cwd ?? undefined, argv: argvOf(first.cmd, last.shell) });
-    for (const p of rest) run("terminal.open", { folder: p.cwd ?? undefined, argv: argvOf(p.cmd, last.shell), place: "right" });
+    this.reopening = true;
+    cx.spawn(async (cx) => {
+      try {
+        if (!this.source) throw new Error('Reopen helper unavailable');
+        const saved = { ...last, panes: last.panes.map((p, i) => ({ ...p, terminal: p.terminal ?? `old-${i}`, argv: argvOf(p.cmd, last.shell) })) };
+        const r = await exec('python3', ['-c', this.source, 'restore', JSON.stringify(saved)]);
+        if (r.code !== 0) throw new Error(r.stderr);
+      } catch (e) {
+        const [first, ...rest] = last.panes;
+        const space = spaces().some(s => s.id === last.space) ? last.space : undefined;
+        run('tab.new', { space, name: last.name ?? undefined, folder: first.cwd ?? undefined, argv: argvOf(first.cmd, last.shell) });
+        for (const p of rest) run('terminal.open', { folder: p.cwd ?? undefined, argv: argvOf(p.cmd, last.shell), place: 'right' });
+        notify({ title: 'Reopened with basic pane layout' });
+      } finally {
+        this.reopening = false;
+        cx.notify();
+      }
+    });
   }
 
   // The side panel is remembered per space: switching shows that space's choice
