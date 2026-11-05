@@ -22,6 +22,12 @@ Each folder under `mods/` is a self-contained Herdr mod. `main.js` is its entry 
 | Mod installation, updates, removal | `mods/omarchy-mod-manager/core.js` |
 | Mod Manager text contrast and colors | `mods/omarchy-mod-manager/palette.js` |
 | Mod Manager navigation and display | `mods/omarchy-mod-manager/main.js` |
+| Changes view: diff, wrap, split, branches, commit | `mods/omarchy-changes/main.js` |
+| Reopen closed tab: snapshot and reopen key | `mods/omarchy-tabs/main.js` |
+| Reopen: agent resume commands | `mods/omarchy-tabs/reopen.js` |
+| Reopen: process scan, exact pane tree restore | `mods/omarchy-tabs/reopen.py` |
+| Keybindings list | `mods/omarchy-keys/main.js` |
+| Theme switcher and its previews | `mods/omarchy-themes/main.js`, `mods/omarchy-themes/previews/` |
 
 ## Check changes
 

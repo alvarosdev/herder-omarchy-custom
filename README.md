@@ -10,16 +10,25 @@
 
 </div>
 
-The layout makes your Herdr window flat and square, with bordered tiles that float over a wallpaper. It shows your spaces, your agents and their status, and the AI usage of the agents on screen. A side panel shows your files, Git changes and a commit graph. Every Omarchy color theme comes with it.
+The Omarchy desktop, rebuilt inside Herdr. Your terminals and coding agents sit in flat, square, bordered tiles that float over a wallpaper. Everything you need while agents work is on one screen: which spaces and agents are busy, how much AI quota is left, your files, your Git changes and the whole commit graph. It follows Omarchy closely, down to the themes, the wallpapers, the theme switcher and the keys.
+
+## Highlights
+
+- **Agents at a glance.** The sidebar lists every agent with its live status: working, needs you, done or idle. Tabs show each agent's icon, what it works on and a spinner while it runs.
+- **AI usage in the top bar.** The 5-hour and 7-day quotas of the agents on screen sit in the middle of the bar, each with a bar in its provider's color. Claude profiles are named, so a work and a personal account are easy to tell apart. Click for reset times.
+- **Closed a tab by mistake? Bring it back.** `ctrl-alt-shift-t` reopens the last closed tab in the same place, with the same splits and sizes. Claude, Codex and pi come back in their own conversations, with their flags and profiles.
+- **Git without leaving the window.** The side panel shows your changes with a diff (wrap long lines, drag the split), commits, pushes, pulls, stashes and switches or creates branches. One click opens the full commit graph, with branch lanes, labels and right-click menus for checkout, merge, rebase, reset and tags.
+- **Omarchy's themes and wallpapers.** Every Omarchy theme ships with all of its wallpapers. The theme switcher is Omarchy 4's: big desktop previews, left and right to choose. A theme brings its own wallpaper, and `super-ctrl-w` cycles them. Light themes switch Herdr to light mode, dark ones back to dark.
+- **Omarchy's keys.** The layout uses Omarchy's own keys wherever GNOME leaves them free. `super-k` lists every key, with the ones that came with the layout set apart.
+- **Square dialogs that match.** The command palette, Settings, a Keybindings list and a mod manager that browses, reviews and installs community mods all share the same look.
 
 ## Features
 
-- **Top bar**: shows your spaces, live AI usage for the agents on screen, and the window buttons.
-- **Sidebar**: lists spaces and agents with their status. You can resize it, and you can fold it into an icon rail.
-- **Tabs**: each tab shows the icons of its agents, what they work on, and their status. `ctrl-alt-shift-t` reopens the last closed tab: each pane in its folder, Claude and Codex back in the conversation they had.
-- **Side panel**: shows your files with colored icons. It also shows Git changes, commits, pushes, pulls and switches branches. Changes can make a new branch, wrap long diff lines, and open a full commit graph (Graph, then ← Changes to go back). The graph shows branch lanes and labels, and its right-click menus check out, merge, rebase, reset and tag.
-- **Dialogs**: the command palette, Settings, a mod manager and a Keybindings list (every key Herdr has) have the same square look. Keybindings and Mods open from the sidebar footer.
-- **Themes**: the layout comes with every Omarchy color theme and its wallpapers. A theme changes the color of each part of the window and brings its own wallpaper. The theme switcher shows Omarchy's preview of each theme: ← and → choose, Enter applies.
+- **Top bar**: your spaces on the left, AI usage in the middle, search, sidebar and window buttons on the right.
+- **Sidebar**: spaces and agents with their status. Resize it, or fold it into an icon rail. The footer opens Settings, Keybindings and Mods.
+- **Tabs**: agent icons, what each one works on, its status, and a close button on hover.
+- **Side panel**: Files with colored icons, and Changes with the commit graph inside it.
+- **Themes**: every Omarchy color theme, each with its wallpapers.
 
 ## Install
 
