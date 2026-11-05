@@ -28,7 +28,7 @@ Top to bottom, left to right. Sizes are logical px at zoom 1. Colors below are t
 
 - **Agent status**: working shows the `working` `#e0af68` color, a pulsing square in the agents list and a spinner on the tab. Blocked (needs input) is `blocked` `#f7768e`, done is `done` `#9ece6a`, and idle is a hollow `dim` square. A tab's status is the most urgent of its agents.
 - **Tabs with several agents**: the cell shows up to three distinct program icons side by side and the lead agent's work as its label. The tooltip lists each agent with its own status. A tab the person renamed keeps its name.
-- **AI usage follows the screen**: it shows providers for the agents in the focused tab (focused pane first, zoom respected). With no agent in view it keeps the last list, dimmed. Clicking it opens a popup with every window and its reset time. Each provider refreshes when it first appears, then every 5 minutes.
+- **AI usage follows the screen**: it shows providers for the agents in the focused tab (focused pane first, zoom respected). With no agent in view it keeps the last list, dimmed. Clicking it opens a popup with every window and its reset time, in 12-hour time ("resets in 2h 10m, at 4:30 PM"). Each provider refreshes when it first appears, then every 5 minutes.
   - **Live providers**: Claude (5h and 7d, plus model-scoped weekly limits), Codex (ChatGPT plan 5h and 7d) and Copilot (monthly premium requests).
   - **Mapped**: Pi and OpenCode reuse those three when their configured provider is Anthropic, OpenAI Codex or GitHub Copilot.
   - **Labelled only**: omp, devin, droid, kimi, kilo, hermes, qodercli, qwen, letta, cursor, mastracode, antigravity-cli and grok.

@@ -6,9 +6,10 @@ export function pace(w) {
   return Math.min(1, Math.max(0, 1 - (end - Date.now()) / w.span));
 }
 
+// 12-hour time: "2:05 PM", "12:00 AM".
 export function clock(ms) {
-  const d = new Date(ms);
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  const d = new Date(ms), h = d.getHours();
+  return `${h % 12 || 12}:${String(d.getMinutes()).padStart(2, "0")} ${h < 12 ? "AM" : "PM"}`;
 }
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
