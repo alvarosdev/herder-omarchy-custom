@@ -1,6 +1,6 @@
 # Omarchy
 
-The Omarchy desktop look for Herdr: flat, square, bordered tiles floating over a wallpaper. A thin top bar shows your spaces, live AI usage for the agents on screen and the window buttons. The sidebar lists spaces and agents with their status, resizes, and folds into an icon rail. A side panel browses files and Git changes, commits, pushes and switches branches. The palette, Settings and a mod manager match the look, and every Omarchy color theme comes with its wallpapers: `ctrl-alt-shift-space` picks a theme, `ctrl-alt-space` cycles its wallpapers.
+The Omarchy desktop look for Herdr: flat, square, bordered tiles floating over a wallpaper. A thin top bar shows your spaces, live AI usage for the agents on screen and the window buttons. The sidebar lists spaces and agents with their status, resizes, and folds into an icon rail. A side panel browses files and Git changes, commits, pushes and switches branches, and draws the commit graph. The palette, Settings and a mod manager match the look, and every Omarchy color theme comes with its wallpapers: `ctrl-alt-shift-space` picks a theme, `ctrl-alt-space` cycles its wallpapers.
 
 ![Omarchy](preview.png)
 
@@ -20,7 +20,7 @@ Top to bottom, left to right. Sizes are logical px at zoom 1. Colors below are t
   - **Work column**:
     - **Tab strip** (36px tile): flat 240px cells with 1px `border` dividers. Each cell shows the agents' program icons, then what they work on (session title, else folder such as `~`, else branch; a shell's bare terminal address like `t4c` never counts as a title), a status word and a spinner while working. Program names like "Claude Code" or "Codex" never appear: the icons carry them. The active tab has an 18% fill and no bottom bar. A 36px `+` cell sits right after the last tab, and Files / Changes / Git toggles sit flush right. Every item in the strip is a full-height flat cell with a 1px `border` divider; the open panel's toggle gets the same fill as the active tab.
     - **Panes**: square, 2px `border` frame and 2px `accent` frame when focused, 10px gaps, 30px header (`omarchy-pane`) that shows the program icon and what it works on (its title, else the folder), never the program name, terminal padding 12px. Tab icons and pane header icons line up on the same left edge.
-    - **Side panel** (475px, hidden until toggled): a stack of Files (`omarchy-files`, colored file-type icons and Git status colors), Changes (`omarchy-changes`, diff, Fetch/Pull/Push/Stash/Pop row with ahead/behind counts, commit box and a solid `accent` Commit button) and browser notes (`omarchy-notes`).
+    - **Side panel** (475px, hidden until toggled): a stack of Files (`omarchy-files`, colored file-type icons and Git status colors), Changes (`omarchy-changes`, diff, Fetch/Pull/Push/Stash/Pop row with ahead/behind counts, commit box and a solid `accent` Commit button), Graph (`omarchy-git-graph`, commit graph with lanes, labels, details and diffs) and browser notes (`omarchy-notes`).
 - **Dialogs**: the palette (`ctrl-shift-p`, 660x450), Settings (`ctrl-,`, 970x690) Mods (`ctrl-shift-m`, 60% x 75%) and Themes (`ctrl-alt-shift-space`, 360x480) are square copies of Herdr's own screens.
 - **Type**: CaskaydiaMono Nerd Font for terminals and UI. UI text is 11-13px, headings up to 16px.
 
@@ -41,7 +41,7 @@ Top to bottom, left to right. Sizes are logical px at zoom 1. Colors below are t
 
 - **Layout** `layouts/omarchy.json`: root `column` (theme `tokyo-night`, `font` and `ui_font` CaskaydiaMono Nerd Font, `titlebar: "none"`, background image cover, `terminal_padding` [12,12]).
   - `topbar` row: `bar-left` (`omarchy-bar` `{part:"left"}`), `ai-usage` (`omarchy-ai-usage` `{compact:true}`), `bar-right` (`omarchy-bar` `{part:"right"}`).
-  - `desk` row: `sidebar` column (`spaces` → `omarchy-spaces`, `agents` → `omarchy-agents`, `sidebar-footer` → `omarchy-chrome` `{footer:true}`) and `work` column (`tabs` → `omarchy-tabs`; `work-body` row with `main` `{tab:"active"}`, whose pane header is `omarchy-pane`, and the `panel` column with stack `panel-body`: `files`, `changes`, `browser-notes`).
+  - `desk` row: `sidebar` column (`spaces` → `omarchy-spaces`, `agents` → `omarchy-agents`, `sidebar-footer` → `omarchy-chrome` `{footer:true}`) and `work` column (`tabs` → `omarchy-tabs`; `work-body` row with `main` `{tab:"active"}`, whose pane header is `omarchy-pane`, and the `panel` column with stack `panel-body`: `files`, `changes`, `graph`, `browser-notes`).
 - **Mods** (all in `mods/`):
   - `omarchy-bar`, `omarchy-ai-usage`: new. `omarchy-bar` also ties the wallpaper to the theme: on any theme change it sets the layout background to the theme's first wallpaper (`layout.set`), and its `next-wallpaper` command cycles the theme's wallpapers.
   - `omarchy-themes`: new. Theme picker; ↑/↓, Enter, Esc.
@@ -51,6 +51,7 @@ Top to bottom, left to right. Sizes are logical px at zoom 1. Colors below are t
   - `omarchy-tabs`: based on RofieSagara/herdr-auto-tabs (Apache-2.0, see its NOTICE).
   - `omarchy-pane`, `omarchy-notes`: pane header and browser notes, which pair with the herdr-browser helper.
   - `omarchy-files`, `omarchy-changes`: colored Files and Changes panels; Charmed icons, see `CHARMED-LICENSE.md`.
+  - `omarchy-git-graph`: rabeeh-ta/herdr-git-graph v0.3.0 (MIT, see its `LICENSE`), restyled: every corner square but the commit dots, no outer border or radius (the panel draws the frame), a `GRAPH` / `MANYGIT` 11px `muted` header like Files, shared keys `omarchy-git-graph.*`, and the upstream update check off. Its tests are `tests/omarchy-git-graph-*.test.mjs`. The tab strip's Graph button shows when `panel-body` has a `graph` child.
 - **Themes**: `themes/*.json` are the 23 Omarchy themes rendered through Omarchy's own `default/themed/herdr-app.json.tpl`, plus `canvas`/`chrome` = `dark_background` and `border` = `muted`.
 - **Keys** (`keys.json`, section `layout:omarchy`): `ctrl-shift-p` → `mod.open:omarchy-palette`, `ctrl-,` → `mod.open:omarchy-settings`, `ctrl-shift-m` → `mod.open:omarchy-mod-manager`, `ctrl-alt-space` → `omarchy-bar.next-wallpaper`, `ctrl-alt-shift-space` → `mod.open:omarchy-themes`.
 - **Shipped mods it borrows icons from**: `pane`, `terminals-bar`, `workspace-chrome`, `new-menu`, `menu`, `picker`, `machine-add`.
@@ -68,6 +69,7 @@ Top to bottom, left to right. Sizes are logical px at zoom 1. Colors below are t
     - `~/.local/share/opencode/auth.json`
   - It calls only the providers' own hosts: `api.anthropic.com`, `chatgpt.com`, `api.github.com`. On Linux it reads `/proc/*/environ` to match each terminal to its Claude config directory.
   - `omarchy-spaces` and `omarchy-changes` run `git`.
+  - `omarchy-git-graph` runs `git`, `find` and `env` (Manygit's fetch-all), and reads files in the repo for diffs.
   - `omarchy-pane` runs `xdg-open` (Linux), `open` (macOS) or `explorer` (Windows) to open links.
   - `omarchy-notes` talks to the local herdr-browser helper (`~/.local/share/herdr-browser`).
   - `omarchy-mod-manager` runs `git`, `gh` (its Marketplace searches GitHub repos tagged `herdr-mod` and `herdr-layout`) and `herdr-app check`.

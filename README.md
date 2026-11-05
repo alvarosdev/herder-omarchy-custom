@@ -10,14 +10,14 @@
 
 </div>
 
-The layout makes your Herdr window flat and square, with bordered tiles that float over a wallpaper. It shows your spaces, your agents and their status, and the AI usage of the agents on screen. A side panel shows your files and Git changes. Every Omarchy color theme comes with it.
+The layout makes your Herdr window flat and square, with bordered tiles that float over a wallpaper. It shows your spaces, your agents and their status, and the AI usage of the agents on screen. A side panel shows your files, Git changes and a commit graph. Every Omarchy color theme comes with it.
 
 ## Features
 
 - **Top bar**: shows your spaces, live AI usage for the agents on screen, and the window buttons.
 - **Sidebar**: lists spaces and agents with their status. You can resize it, and you can fold it into an icon rail.
 - **Tabs**: each tab shows the icons of its agents, what they work on, and their status.
-- **Side panel**: shows your files with colored icons. It also shows Git changes, commits, pushes, pulls and switches branches.
+- **Side panel**: shows your files with colored icons. It also shows Git changes, commits, pushes, pulls and switches branches. The Graph tab draws the commit graph with branch lanes and labels, and its right-click menus check out, merge, rebase, reset and tag.
 - **Dialogs**: the command palette, Settings and a mod manager have the same square look.
 - **Themes**: the layout comes with every Omarchy color theme and its wallpapers. A theme changes the color of each part of the window and brings its own wallpaper.
 
@@ -34,7 +34,7 @@ The agent copies the layout, mods, themes and wallpapers into `~/.config/herdr-a
 > [!NOTE]
 > Some mods use the network or run programs:
 > - `omarchy-ai-usage` reads the local login files of your AI agents (Claude, Codex, Copilot, OpenCode and Pi). It uses the tokens in them to get your usage from the API of each provider.
-> - `omarchy-spaces`, `omarchy-files` and `omarchy-changes` run `git` in your folders.
+> - `omarchy-spaces`, `omarchy-files`, `omarchy-changes` and `omarchy-git-graph` run `git` in your folders. `omarchy-git-graph` also runs `find` to look for repos in a folder that is not one.
 > - `omarchy-mod-manager` searches GitHub for mods. It runs `git` and `gh` to download and install them.
 
 ## Keys

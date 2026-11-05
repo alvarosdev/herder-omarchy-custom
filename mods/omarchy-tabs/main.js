@@ -132,6 +132,6 @@ export default class Tabs extends View {
       .child(h_flex().h_full().gap(0).items_center().flex_none()
       .when(enabled.includes("files"), el => el.child(panelButton("files", "Files", "mods/files/file.svg")))
       .when(enabled.includes("changes"), el => el.child(panelButton("changes", "Changes", "mods/changes/changes.svg")))
-      .when(enabled.includes("graph"), el => el.child(panelButton("graph", "Git", "mods/omarchy-tabs/icons/graph.svg"))));
+      .when(enabled.includes("graph"), el => el.child(panelButton("graph", "Graph", "mods/omarchy-tabs/icons/graph.svg"))));
   }
 }

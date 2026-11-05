@@ -219,6 +219,13 @@
                           }
                         },
                         {
+                          "id": "graph",
+                          "type": "block",
+                          "content": {
+                            "mod": "omarchy-git-graph"
+                          }
+                        },
+                        {
                           "id": "browser-notes",
                           "type": "block",
                           "content": {
