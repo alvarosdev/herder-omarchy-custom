@@ -46,8 +46,8 @@ These keys work only in the Omarchy layout:
 | `ctrl-shift-p` | Open the command palette |
 | `ctrl-,` | Open Settings |
 | `ctrl-shift-m` | Open the mod manager |
-| `ctrl-alt-shift-space` | Pick a theme |
-| `ctrl-shift-space` | Change to the theme's next wallpaper |
+| `super-ctrl-shift-space` or `super-ctrl-t` | Pick a theme (as in Omarchy) |
+| `super-ctrl-space` or `super-ctrl-w` | Change to the theme's next wallpaper (as in Omarchy) |
 | `ctrl-shift-l` | Change to a different layout |
 
 ## What is inside

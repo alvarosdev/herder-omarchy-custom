@@ -624,7 +624,7 @@ export class Graph {
     return h_flex().h(42).flex_none().px(14).gap(8).items_center().border_b(1).border_color(t.border)
       .when(Boolean(back), (e) => e.child(div().id("graph-to-changes").flex_none().cursor_pointer().text_size(11).text_color(t.muted)
         .hover((s) => s.text_color(t.foreground)).on_click(() => run("layout.select", { stack: "changes", child: back })).child("← CHANGES")))
-      .when(!repo, (e) => e.child(div().text_size(11).text_color(t.muted).child(ws ? "MANYGIT" : "GRAPH")))
+      .when(!repo && Boolean(ws), (e) => e.child(div().text_size(11).text_color(t.muted).child("MANYGIT")))
       .when(Boolean(repo), (e) => e
         .child(h_flex().id("graph-back").h(24).pl(2).pr(6).gap(3).flex_none().items_center().rounded(0).cursor_pointer()
           .hover((s) => s.bg(t.hover)).on_click((_e, cx) => this.back(cx))

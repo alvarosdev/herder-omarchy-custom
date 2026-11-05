@@ -42,6 +42,8 @@ export default class Changes extends View {
     this.input.on("focus", (_e, cx) => { this.typing = true; cx.notify(); });
     this.input.on("blur", (_e, cx) => { this.typing = false; cx.notify(); });
     this.branchInput = InputState.new({ placeholder: "New branch name" });
+    // The file list's height, dragged by the edge above the diff; null fits the files.
+    this.listH = shared("omarchy-changes.list") ?? null;
     this.branchInput.on("submit", (_e, cx) => this.createBranch(cx));
     this.refresh(cx);
     cx.timer.every(10000, (cx) => this.refresh(cx));
@@ -277,28 +279,50 @@ export default class Changes extends View {
       .child(line(div().flex_1().min_w(0)).text_color(kind === "+" ? t.ansi2 : kind === "-" ? t.ansi1 : t.foreground).child(text));
   }
 
+  // Pointer moves come in window units; element sizes are units times the zoom.
+  moveDrag(e, cx) {
+    const d = this.drag;
+    if (!d) return;
+    // Leaves the diff at least 120 of the body's height.
+    this.listH = Math.max(44, Math.min((this.bodyH ?? 800) - 120, d.from + (e.position.y - d.y) / (settings().zoom ?? 1)));
+    d.moved = true;
+    cx.notify();
+  }
+
+  endDrag(cx) {
+    if (!this.drag) return;
+    if (this.drag.moved) setShared("omarchy-changes.list", this.listH);
+    this.drag = null;
+    cx.notify();
+  }
+
   render(cx) {
     if (key() !== this.context) this.refresh(cx);
     const t = theme(), add = this.files.reduce((n, f) => n + f.add, 0), del = this.files.reduce((n, f) => n + f.del, 0);
     const enabled = Boolean(this.message.trim() && this.root && !this.busy && !this.loading);
     const wrap = shared("omarchy-changes.wrap") === true, graph = props()?.graph;
+    const listH = this.listH ?? Math.min(200, Math.max(44, this.files.length * 28 + 12));
     const headButton = (id, label, on, onClick, icon) => h_flex().id(id).h(22).px(7).gap(5).flex_none().items_center().border_1().cursor_pointer().text_size(11)
       .border_color(on ? t.accent : t.border).text_color(on ? t.accent : t.muted).hover((s) => s.text_color(t.foreground)).on_click(onClick)
       .when(Boolean(icon), (e) => e.child(svg(icon).size(12))).child(label);
     return v_flex().id("changes").size_full().min_h(0).rounded(0).overflow_hidden().bg(t.background).text_color(t.foreground).text_size(13).track_focus(this.handle)
+      .on_mouse_move((e, cx) => this.moveDrag(e, cx))
+      .on_mouse_up("left", (_e, cx) => this.endDrag(cx))
+      .on_hover((hovered, cx) => { if (!hovered) this.endDrag(cx); })
       .on_key_down((e, cx) => {
         if (e.key === "escape" && this.typing) { this.typing = false; this.handle.focus(); cx.stop_propagation(); cx.notify(); }
       })
+      // Graph sits where the graph's back button does, so the two toggle in place.
       .child(h_flex().h(42).flex_none().px(14).gap(8).items_center().border_b(1).border_color(t.border)
+        .when(Boolean(graph), (e) => e.child(headButton("changes-graph", "Graph", false, () => run("layout.select", { stack: "changes", child: graph }), "mods/omarchy-changes/graph.svg")))
+        .child(headButton("changes-wrap", "Wrap", wrap, () => setShared("omarchy-changes.wrap", !wrap)))
         .child(div().text_size(11).text_color(t.muted).child("CHANGES"))
         .child(div().px(5).py(1).rounded(0).text_size(10).text_color(t.muted).child(`${this.files.length} files`))
-        .child(div().flex_1()).child(div().text_size(11).text_color(t.ansi2).child(`+${add}`)).child(div().text_size(11).text_color(t.ansi1).child(`−${del}`))
-        .child(headButton("changes-wrap", "Wrap", wrap, () => setShared("omarchy-changes.wrap", !wrap)))
-        .when(Boolean(graph), (e) => e.child(headButton("changes-graph", "Graph", false, () => run("layout.select", { stack: "changes", child: graph }), "mods/omarchy-changes/graph.svg"))))
+        .child(div().flex_1()).child(div().text_size(11).text_color(t.ansi2).child(`+${add}`)).child(div().text_size(11).text_color(t.ansi1).child(`−${del}`)))
       .when(Boolean(this.root), (e) => e.child(this.syncRow(t)))
       .when(Boolean(this.root && this.branches), (e) => e.child(this.branchList(t)))
-      .child(v_flex().flex_1().min_h(0).p(8).gap(8)
-        .child(v_flex().id("changes-list").flex_none().h(Math.min(200, Math.max(44, this.files.length * 28 + 12))).overflow_y_scrollbar().p(6).rounded(0).bg(t.chrome).children(this.files.map((f) => {
+      .child(v_flex().id("changes-body").flex_1().min_h(0).p(8).on_size_change((size) => { this.bodyH = size.height / (settings().zoom ?? 1); })
+        .child(v_flex().id("changes-list").flex_none().h(listH).overflow_y_scrollbar().p(6).rounded(0).bg(t.chrome).children(this.files.map((f) => {
           const parts = f.path.split("/"), name = parts.pop();
           return h_flex().id(`change-${f.path}`).h(28).flex_none().px(8).gap(8).items_center().rounded(0).cursor_pointer().relative().when(this.open === f.path, (e) => e.bg(t.foreground + "2e")).hover((s) => s.bg(this.open === f.path ? t.foreground + "2e" : t.foreground + "14")).on_click((_e, cx) => this.pick(f.path, cx))
             .when(this.open === f.path, (e) => e.child(div().absolute().left_0().top_0().bottom_0().w(2).bg(t.accent)))
@@ -308,6 +332,15 @@ export default class Changes extends View {
             .when(f.add > 0, (e) => e.child(div().text_size(11).text_color(t.ansi2).child(`+${f.add}`))).when(f.del > 0, (e) => e.child(div().text_size(11).text_color(t.ansi1).child(`−${f.del}`)));
         })).when(!this.files.length, (e) => e.child(div().p(8).text_color(t.dim).child(this.error || (this.loading ? "Loading changes…" : this.root ? "No uncommitted changes" : "No folder")))))
         .when(this.limited, el => el.child(div().px(12).py(4).text_size(11).text_color(t.dim).child("Showing the first 1,000 changed files")))
+        // The gap between list and diff is the drag handle; a double-click fits the list to its files again.
+        .child(div().id("changes-split").h(8).flex_none().flex().items_center().cursor_row_resize()
+          .on_mouse_down("left", (e, cx) => {
+            cx.stop_propagation();
+            if (e.click_count > 1) { this.listH = null; setShared("omarchy-changes.list", null); cx.notify(); return; }
+            this.drag = { y: e.position.y, from: listH };
+          })
+          .child(div().w_full().h(1).when(Boolean(this.drag), (e) => e.bg(t.accent)))
+          .hover((s) => s.bg(t.border)))
         .child(div().id("changes-diff-container").flex_1().min_h(0).relative().rounded(0).overflow_hidden().font_family(settings().font_family ?? "JetBrains Mono").text_size(11)
           .when(wrap, (e) => e.child(v_flex().id("changes-diff-wrap").size_full().overflow_y_scrollbar().children(this.rows.map((row) => this.diffRow(row, t, true)))))
           .when(!wrap, (e) => e.child(div().id("changes-diff-x").size_full().overflow_x_scrollbar()
