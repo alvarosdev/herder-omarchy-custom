@@ -1,6 +1,7 @@
 import { View, div, svg } from "gpui-kit";
 import { h_flex } from "gpui-base";
-import { spaces, agents, theme, run, window, props, layout, shared, setShared, focused, home } from "herdr";
+import { spaces, agents, theme, run, window, props, layout, shared, setShared, focused, home, nextCommand, settings } from "herdr";
+import { wallpapers, setWallpaper } from "./wallpaper.js";
 
 const own = (el) => el.on_mouse_down("left", (_e, cx) => cx.stop_propagation());
 
@@ -22,7 +23,30 @@ function toggleSidebar() {
   run("layout.resize", { id: "sidebar", px: narrow ? (shared("sidebar.width") ?? 268) : window()?.platform === "macos" ? 76 : 44 });
 }
 
+// The theme's next wallpaper, as Omarchy's Super+Ctrl+Space.
+async function nextWallpaper() {
+  const all = await wallpapers(settings().theme);
+  if (!all.length) return;
+  setWallpaper(all[(all.indexOf(layout()?.background?.image) + 1) % all.length]);
+}
+
+// The wallpaper belongs to the theme: a theme change from any picker brings its first one.
+async function matchWallpaper(name) {
+  if (layout()?.background?.image?.startsWith(`backgrounds/omarchy/${name}/`)) return;
+  const [first] = await wallpapers(name);
+  // A newer theme change may have come in while listing.
+  if (first && settings().theme === name) setWallpaper(first);
+}
+
 export default class OmarchyBar extends View {
+  init(_props, cx) {
+    // The bar is in the layout twice; one copy takes the key.
+    if (props()?.part !== "left") return;
+    cx.spawn(async () => {
+      for (;;) if ((await nextCommand()) === "next-wallpaper") await nextWallpaper();
+    });
+  }
+
   render() {
     const t = theme();
     const part = props()?.part;
@@ -32,6 +56,11 @@ export default class OmarchyBar extends View {
   }
 
   left(row, t) {
+    const name = settings().theme;
+    if (name !== this.theme) {
+      this.theme = name;
+      matchWallpaper(name);
+    }
     const list = spaces();
     const blocked = new Set(agents().filter((a) => a.status === "blocked").map((a) => a.space));
     const space = list.find((s) => s.active);

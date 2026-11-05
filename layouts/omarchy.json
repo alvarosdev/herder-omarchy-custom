@@ -10,7 +10,7 @@
   "font": "CaskaydiaMono Nerd Font",
   "ui_font": "CaskaydiaMono Nerd Font",
   "background": {
-    "image": "backgrounds/omarchy-tokyo-night.jpg",
+    "image": "backgrounds/omarchy/tokyo-night/1-winding-road.webp",
     "fit": "cover"
   },
   "terminal_padding": [

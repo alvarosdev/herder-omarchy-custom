@@ -8,6 +8,9 @@ Each folder under `mods/` is a self-contained Herdr mod. `main.js` is its entry 
 | --- | --- |
 | Layout, tile sizes, spacing | `layouts/omarchy.json` |
 | Theme colors | `themes/*.json` |
+| Theme wallpapers | `backgrounds/omarchy/<theme>/` |
+| Wallpaper follows theme, next-wallpaper key | `mods/omarchy-bar/main.js` |
+| Theme picker | `mods/omarchy-themes/main.js` |
 | Settings state, persistence, machine actions | `mods/omarchy-settings/main.js` |
 | Layout, theme, appearance, font pickers | `mods/omarchy-settings/look.js` |
 | Settings buttons, rows, toggles, steppers | `mods/omarchy-settings/controls.js` |

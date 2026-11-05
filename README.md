@@ -19,7 +19,7 @@ The layout makes your Herdr window flat and square, with bordered tiles that flo
 - **Tabs**: each tab shows the icons of its agents, what they work on, and their status.
 - **Side panel**: shows your files with colored icons. It also shows Git changes, commits, pushes, pulls and switches branches.
 - **Dialogs**: the command palette, Settings and a mod manager have the same square look.
-- **Themes**: the layout comes with every Omarchy color theme. A theme changes the color of each part of the window.
+- **Themes**: the layout comes with every Omarchy color theme and its wallpapers. A theme changes the color of each part of the window and brings its own wallpaper.
 
 ## Install
 
@@ -29,7 +29,7 @@ Ask your agent in Herdr:
 Read ~/.config/herdr-app/AGENTS.md, then add the layout from github.com/shafiqimtiaz/herdr-omarchy.
 ```
 
-The agent copies the layout, mods, themes and wallpaper into `~/.config/herdr-app`. Your own layout stays. Press `ctrl-shift-l` to change between layouts.
+The agent copies the layout, mods, themes and wallpapers into `~/.config/herdr-app`. Your own layout stays. Press `ctrl-shift-l` to change between layouts.
 
 > [!NOTE]
 > Some mods use the network or run programs:
@@ -46,6 +46,8 @@ These keys work only in the Omarchy layout:
 | `ctrl-shift-p` | Open the command palette |
 | `ctrl-,` | Open Settings |
 | `ctrl-shift-m` | Open the mod manager |
+| `ctrl-alt-shift-space` | Pick a theme |
+| `ctrl-alt-space` | Change to the theme's next wallpaper |
 | `ctrl-shift-l` | Change to a different layout |
 
 ## What is inside
@@ -57,7 +59,7 @@ The repo has the same structure as a Herdr home folder:
 | `layouts/omarchy.json` | The layout: tile tree, sizes and spacing |
 | `mods/` | One folder for each mod. Each mod installs on its own. |
 | `themes/` | The Omarchy color themes |
-| `backgrounds/` | The wallpaper |
+| `backgrounds/omarchy/` | The wallpapers of each theme |
 | `keys.json` | The layout keys |
 | `RECIPE.md` | The full brief. An agent can build the layout again from it. |
 
