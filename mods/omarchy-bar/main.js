@@ -42,8 +42,12 @@ export default class OmarchyBar extends View {
   init(_props, cx) {
     // The bar is in the layout twice; one copy takes the key.
     if (props()?.part !== "left") return;
-    cx.spawn(async () => {
-      for (;;) if ((await nextCommand()) === "next-wallpaper") await nextWallpaper();
+    // Each step touches cx, so a reloaded bar's old loop ends instead of eating the key.
+    cx.spawn(async (cx) => {
+      for (;;) {
+        if ((await nextCommand()) === "next-wallpaper") await nextWallpaper();
+        cx.notify();
+      }
     });
   }
 
