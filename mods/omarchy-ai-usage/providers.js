@@ -98,6 +98,18 @@ async function creds(src) {
 const claudeDirs = [".claude", ".claude-personal"];
 const claudeLabel = dir => (dir.split("/").pop().replace(/^\.claude-?/, "") || "claude");
 
+// The name a profile is signed in under: its organization ("Flexspring"), or "personal" for the
+// "<email>'s Organization" a personal account gets. ~/.claude keeps its state in ~/.claude.json,
+// other config folders inside themselves. Falls back to the folder's name.
+async function claudeName(dir) {
+  const file = dir === `${home()}/.claude` ? `${home()}/.claude.json` : `${dir}/.claude.json`;
+  const text = await readTextFile(file).catch(() => null);
+  let org;
+  try { org = JSON.parse(text ?? "{}")?.oauthAccount?.organizationName; } catch { /* mid-write or broken: the folder's name */ }
+  if (!org) return claudeLabel(dir);
+  return /'s Organization$/.test(org) ? "personal" : org;
+}
+
 function labelled(v, why) {
   return { id: `none.${v.program.key}`, agent: v.program.name, label: v.program.name, icon: v.program.icon, tint: v.program.tint, note: why ?? "no usage API" };
 }
@@ -108,7 +120,7 @@ export async function sourcesFor(v, claudeDirOf) {
   if (key === "claude" || key === "claude-code") {
     const dir = await claudeDirOf(v.terminal);
     const dirs = dir ? [dir] : claudeDirs.map(d => `${home()}/${d}`);
-    return dirs.map(d => ({ id: `claude.${claudeLabel(d)}`, provider: "claude", agent, label: claudeLabel(d), sub: d.replace(home(), "~"), icon, tint, from: { claude: d } }));
+    return Promise.all(dirs.map(async d => ({ id: `claude.${claudeLabel(d)}`, provider: "claude", agent, label: await claudeName(d), sub: d.replace(home(), "~"), icon, tint, from: { claude: d } })));
   }
   if (key === "codex") return [{ id: "codex", provider: "codex", agent, label: "codex", sub: "ChatGPT plan", icon, tint, from: { codex: true } }];
   if (key === "copilot") return [{ id: "copilot", provider: "copilot", agent, label: "copilot", sub: "GitHub Copilot", icon, tint, from: { copilot: true } }];

@@ -148,26 +148,28 @@ export default class AiUsage extends View {
   compact() {
     const t = theme(), list = shownList(), idle = shared(SHOWN)?.idle;
     const n = list.length;
-    // Icon, one bar for the first window, then the next window as plain text. The popup has the rest.
-    const barW = n === 1 ? 90 : n === 2 ? 60 : 40;
-    const twoClaudes = list.filter(x => x.provider === "claude").length > 1;
+    // Icon, then each window (5h, 7d) as its label, a bar and the percent. The popup has the rest.
+    const barW = n === 1 ? 70 : n === 2 ? 48 : 32;
     const segs = list.map(s => {
       const u = shared(keyOf(s.id));
       const stale = idle || isStale(u);
       const [first, second] = u?.windows ?? [];
-      const pct = (w, c) => div().whitespace_nowrap().text_color(stale ? t.dim : w.used >= 80 ? c : t.muted).child(`${w.used}%`);
+      const win = (w) => {
+        const c = color(w, stale, t, s);
+        return h_flex().gap(5).items_center().flex_none()
+          .child(div().whitespace_nowrap().text_color(t.dim).child(w.short))
+          .child(div().relative().w(barW).h(6).bg(t.border).child(div().absolute().left(0).top(0).h_full().w(`${clamp(w.used)}%`).bg(c)))
+          .child(div().whitespace_nowrap().text_color(stale ? t.dim : w.used >= 80 ? c : t.muted).child(`${w.used}%`));
+      };
       return h_flex().gap(6).items_center().flex_none()
         .child(this.icon(s, 12, stale))
-        .when(twoClaudes && s.provider === "claude", el => el.child(div().whitespace_nowrap().text_color(stale ? t.dim : t.foreground).child(s.label)))
+        // The profile's name, so a work and a personal Claude tell apart.
+        .when(s.provider === "claude", el => el.child(div().whitespace_nowrap().text_color(stale ? t.dim : t.foreground).child(s.label)))
         .when(Boolean(s.note) || !first, el => el.child(div().whitespace_nowrap().text_color(t.dim).child(s.note ?? (u?.error ? "no data" : u?.fetched ? "no limits" : "…"))))
-        .when(Boolean(first), el => {
-          const c = color(first, stale, t, s);
-          return el.child(div().relative().w(barW).h(6).bg(t.border).child(div().absolute().left(0).top(0).h_full().w(`${clamp(first.used)}%`).bg(c)))
-            .child(pct(first, c));
-        })
-        .when(Boolean(second), el => el.child(div().text_color(t.dim).child(second.short)).child(pct(second, color(second, stale, t, s))));
+        .when(Boolean(first), el => el.child(win(first)))
+        .when(Boolean(second), el => el.child(win(second)));
     });
-    return this.shell(h_flex()).justify_end().px(10).gap(14).text_size(11).children(segs);
+    return this.shell(h_flex()).justify_center().px(10).gap(14).text_size(11).children(segs);
   }
 
   details() {

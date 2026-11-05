@@ -161,3 +161,14 @@ test('Pi Copilot OAuth uses refresh token for the usage endpoint', async () => {
   assert.equal(source.id, 'pi.copilot');
   assert.equal(h.requests[0].headers.Authorization, 'token refresh-token');
 });
+
+test('a Claude profile is named after its organization, or personal', async () => {
+  const { route } = usageHarness({
+    '/home/test/.claude.json': { oauthAccount: { organizationName: 'Flexspring' } },
+    '/home/test/.claude-personal/.claude.json': { oauthAccount: { organizationName: "me@example.com's Organization" } },
+  });
+  assert.equal((await route(agent('claude'), '/home/test/.claude'))[0].label, 'Flexspring');
+  assert.equal((await route(agent('claude'), '/home/test/.claude-personal'))[0].label, 'personal');
+  // No account file: the folder's name, as before.
+  assert.equal((await route(agent('claude'), '/home/test/.claude-other'))[0].label, 'other');
+});
