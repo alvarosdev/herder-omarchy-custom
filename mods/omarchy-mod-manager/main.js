@@ -4,14 +4,14 @@
 
 import { View, div, uniform_list } from "gpui-kit";
 import { h_flex, v_flex, InputState, Input, Scrollbar, VirtualListScrollHandle } from "gpui-base";
-import { exec, appHome, readTextFile, writeTextFile, shared, setShared, props, closeOverlay, notify, theme, run, knownAgents } from "herdr";
+import { exec, appHome, readTextFile, writeTextFile, shared, setShared, props, closeOverlay, notify, theme, run, knownAgents, settings } from "herdr";
 import * as core from "./core.js";
 import { palette, readable } from "./palette.js";
 
 const RECORDS = "mod-manager.installed";
 const PAGE = 10;
 const FETCH = 50;
-const ROW = 44;
+const ROW = 56;
 const SPINNER = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 const HINTS = {
   list: [["↑↓", "move"], ["enter", "ask AI"], ["/", "filter"], ["u", "update"], ["x", "remove"], ["tab", "marketplace"], ["esc", "close"]],
@@ -38,6 +38,12 @@ const saveRecords = (list) => setShared(RECORDS, list);
 const cacheDir = () => `${appHome()}/.mod-manager-cache`;
 const repoPage = (source) => (/^[\w.-]+\/[\w.-]+$/.test(source) ? `https://github.com/${source}` : null);
 const short = (sha) => (sha ? sha.slice(0, 7) : "?");
+
+// Two letters for a mod's tile: "omarchy-ai-usage" -> "AU", "git-graph" -> "GG".
+const monogram = (name) => {
+  const words = name.replace(/^omarchy-/, "").split(/[-_/]/).filter(Boolean);
+  return ((words[0]?.[0] ?? "?") + (words[1]?.[0] ?? words[0]?.[1] ?? "")).toUpperCase();
+};
 
 function aiTask(mod, request) {
   const home = appHome();
@@ -485,9 +491,15 @@ export default class ModManager extends View {
 
   // ---- building blocks ----
 
-  keycap(p, key) {
-    return div().px(6).h(22).flex().items_center().rounded(0).border_1().border_color(p.input).bg(p.bg)
-      .text_size(11.5).font_semibold().text_color(p.fg).child(key);
+  keycap(p, key, on) {
+    return div().px(6).h(20).flex().items_center().rounded(0).border_1().border_color(on ? p.solidFg + "66" : p.border).bg(on ? "#00000022" : p.card)
+      .text_size(10.5).font_semibold().text_color(on ? p.solidFg : p.muted).child(key);
+  }
+
+  // A square tile with the mod's two letters, tinted by what it is.
+  tile(p, name, color, size) {
+    return div().size(size).flex_none().flex().items_center().justify_center().rounded(0).bg(color + "26").border_1().border_color(color + "66")
+      .text_size(size * 0.36).font_semibold().text_color(color).child(monogram(name));
   }
 
   // A clickable action. The key it also answers to is drawn as a keycap, and announced.
@@ -495,52 +507,52 @@ export default class ModManager extends View {
     const fill = style === "primary" ? p.solid : p.bg;
     const color = style === "primary" ? p.solidFg : style === "danger" ? p.warn : p.fg;
     return h_flex().id(id).role("button").accessibility_label(key ? `${label}, key ${key}` : label)
-      .h(38).px(14).gap(10).items_center().rounded(0).flex_none().cursor_pointer()
-      .bg(fill).border_1().border_color(style === "danger" ? p.warn : style === "primary" ? p.solid : p.input)
-      .hover((s) => s.opacity(0.88))
+      .h(36).px(14).gap(10).items_center().justify_between().rounded(0).flex_none().cursor_pointer()
+      .bg(fill).border_1().border_color(style === "danger" ? p.warn : style === "primary" ? p.solid : p.border)
+      .hover((s) => (style === "plain" ? s.bg(p.hover) : s.opacity(0.88)))
       .text_size(12.5).font_semibold().text_color(color)
       .on_click((_e, cx) => { this.handle.focus(); onClick(cx); cx.notify(); })
       .child(label)
-      .when(Boolean(key), (el) => el.child(this.keycap(p, key)));
+      .when(Boolean(key), (el) => el.child(this.keycap(p, key, style === "primary")));
   }
 
   pill(p, text, color) {
-    return div().px(10).h(26).flex().items_center().rounded(0).border_1().border_color(color)
-      .text_size(11.5).font_semibold().text_color(color).child(text);
+    return div().px(8).h(22).flex().items_center().rounded(0).bg(color + "1f").border_1().border_color(color + "88")
+      .text_size(10.5).font_semibold().text_color(color).child(text.toUpperCase());
   }
 
   fact(p, label, value) {
-    return h_flex().gap(12).items_start()
-      .child(div().w(96).flex_none().text_size(12).text_color(p.muted).child(label))
+    return h_flex().gap(12).items_start().py(6).border_b_1().border_color(p.border)
+      .child(div().w(84).flex_none().text_size(10.5).font_semibold().text_color(p.dim).child(label.toUpperCase()))
       .child(div().flex_1().min_w(0).whitespace_normal().text_size(12.5).text_color(p.fg).child(value));
   }
 
   card(p, children) {
-    return v_flex().p(18).gap(14).rounded(0).bg(p.card).border_1().border_color(p.border).children(children);
+    return v_flex().p(20).gap(16).rounded(0).bg(p.card).border_1().border_color(p.border).children(children);
   }
 
   tab(p, id, label, count, active, onClick) {
-    return v_flex().id(id).role("tab").aria_selected(active).cursor_pointer().gap(6).px(4)
+    return v_flex().id(id).role("tab").aria_selected(active).cursor_pointer().gap(8)
       .on_click((_e, cx) => { onClick(cx); cx.notify(); })
-      .child(h_flex().gap(8).items_center().h(30)
-        .child(div().text_size(11.5).font_semibold().text_color(active ? p.fg : p.muted).child(label))
-        .when(count != null, (el) => el.child(div().px(8).h(22).flex().items_center().rounded(0).bg(active ? p.sel : p.card)
-          .text_size(11.5).text_color(p.fg).child(String(count)))))
-      .child(div().h(3).rounded(0).bg(active ? p.bar : p.bg));
+      .child(h_flex().gap(8).items_center().h(28)
+        .child(div().text_size(13).font_semibold().text_color(active ? p.fg : p.muted).child(label.toUpperCase()))
+        .when(count != null, (el) => el.child(div().px(7).h(20).flex().items_center().rounded(0).bg(active ? p.bar : p.card)
+          .text_size(11).font_semibold().text_color(active ? p.solidFg : p.muted).child(String(count)))))
+      .child(div().h(2).rounded(0).bg(active ? p.bar : "#00000000"));
   }
 
   header(p) {
     const tabs = this.mode === "list" || this.mode === "market";
     const updates = this.updateCount();
-    return h_flex().gap(28).items_end().pb(2).border_b_1().border_color(p.border)
-      .child(v_flex().gap(2).pb(10)
-        .child(div().text_size(11.5).font_semibold().text_color(p.fg).child("Mod Manager"))
-        .child(div().text_size(12).text_color(p.muted).child(updates ? `${updates} update${updates > 1 ? "s" : ""} available` : "Everything in ~/.config/herdr-app/mods")))
-      .when(tabs, (el) => el.child(h_flex().role("tab_list").gap(22)
+    return h_flex().gap(36).items_end().border_b_1().border_color(p.border)
+      .child(v_flex().gap(4).pb(14)
+        .child(div().text_size(28).font_semibold().text_color(p.fg).child("Mods"))
+        .child(div().text_size(12).text_color(updates ? p.warn : p.muted).child(updates ? `${updates} update${updates > 1 ? "s" : ""} available` : "Everything in ~/.config/herdr-app/mods")))
+      .when(tabs, (el) => el.child(h_flex().role("tab_list").gap(28)
         .child(this.tab(p, "tab-installed", "Installed", this.mods.length, this.mode === "list", (cx) => this.switchTab(cx, "list")))
         .child(this.tab(p, "tab-market", "Marketplace", this.market.total || null, this.mode === "market", (cx) => this.switchTab(cx, "market")))))
       .child(div().flex_1())
-      .child(div().pb(10).child(this.button(p, "close", "Close", "esc", () => this.dismiss())));
+      .child(div().pb(14).child(this.button(p, "close", "Close", "esc", () => this.dismiss())));
   }
 
   banner(p) {
@@ -591,9 +603,9 @@ export default class ModManager extends View {
   }
 
   footer(p) {
-    return h_flex().gap(18).items_center().flex_wrap().pt(10).border_t_1().border_color(p.border).children(
+    return h_flex().gap(18).items_center().flex_wrap().mx(-28).mb(-24).px(28).py(12).bg(p.card).border_t_1().border_color(p.border).children(
       HINTS[this.mode].map(([key, what]) => h_flex().gap(6).items_center()
-        .child(this.keycap(p, key)).child(div().text_size(12).text_color(p.muted).child(what))));
+        .child(this.keycap(p, key)).child(div().text_size(11.5).text_color(p.muted).child(what))));
   }
 
   // ---- screens ----
@@ -607,14 +619,17 @@ export default class ModManager extends View {
         const m = mods[i];
         const sel = i === this.at;
         const update = m.record && this.updates[m.record.source];
-        const [glyph, color] = update ? ["↑", p.warn] : m.kind === "installed" ? ["●", p.ok] : m.kind === "local" ? ["○", p.muted] : ["◇", p.muted];
-        out.push(h_flex().id(`mod-${m.name}`).role("list_box_option").aria_selected(sel).h(ROW).pr(14).gap(12).items_center()
-          .rounded(0).cursor_pointer().when(sel, (el) => el.bg(p.sel)).hover((s) => s.bg(sel ? p.sel : p.hover))
-          .child(div().w(4).h(24).rounded(0).bg(sel ? p.bar : p.bg).when(!sel, (el) => el.opacity(0)))
-          .child(div().w(18).flex_none().text_size(12.5).text_color(color).child(glyph))
-          .child(div().flex_1().min_w(0).truncate().text_size(11.5).font_weight(sel ? 600 : 400).text_color(p.fg).child(m.name))
-          .child(div().flex_none().text_size(12).text_color(update ? p.warn : m.kind === "installed" ? p.accent : p.muted)
-            .child(update ? "Update available" : `${kinds[m.kind]}${m.symlink ? " · link" : ""}`)));
+        const color = update ? p.warn : m.kind === "installed" ? p.ok : m.kind === "local" ? p.accent : p.muted;
+        out.push(h_flex().id(`mod-${m.name}`).role("list_box_option").aria_selected(sel).h(ROW).pr(16).gap(14).items_center()
+          .rounded(0).cursor_pointer().border_b_1().border_color(p.border).when(sel, (el) => el.bg(p.sel)).hover((s) => s.bg(sel ? p.sel : p.hover))
+          .child(div().w(3).h_full().rounded(0).bg(sel ? p.bar : "#00000000"))
+          .child(this.tile(p, m.name, color, 34))
+          .child(v_flex().flex_1().min_w(0).gap(2)
+            .child(div().truncate().text_size(13).font_weight(sel ? 600 : 500).text_color(p.fg).child(m.name))
+            .child(div().truncate().text_size(11).text_color(p.dim).child(`${kinds[m.kind]}${m.symlink ? " · link" : ""} · mods/${m.name}`)))
+          .child(update
+            ? div().px(8).h(22).flex().items_center().bg(p.warn).text_size(10.5).font_semibold().text_color(p.bg).child("↑ UPDATE")
+            : this.pill(p, kinds[m.kind], color)));
       }
       return out;
     }).track_scroll(this.scroll).size_full()
@@ -624,13 +639,13 @@ export default class ModManager extends View {
       .child(mods.length
         ? v_flex().relative().flex_1().min_h(0).child(rows).child(Scrollbar.vertical("mods").absolute().inset_0())
         : div().p(16).text_size(12.5).text_color(p.muted).child(this.filter ? `No mod matches "${this.filter}".` : "Loading your mods…"));
-    return h_flex().flex_1().min_h(0).gap(20).items_start()
+    return h_flex().flex_1().min_h(0).gap(24).items_start()
       .child(listPane.h_full())
       .child(this.modInspector(p, this.selectedMod()));
   }
 
   modInspector(p, mod) {
-    const box = v_flex().w(360).flex_none().h_full().gap(16).overflow_y_scrollbar();
+    const box = v_flex().w(380).flex_none().h_full().gap(16).overflow_y_scrollbar();
     if (!mod) return box;
     const r = mod.record;
     const update = r && this.updates[r.source];
@@ -652,12 +667,14 @@ export default class ModManager extends View {
       mod.kind !== "herdr" ? this.button(p, "act-remove", "Remove", "x", () => this.removeAsk(mod), "danger") : null,
     ].filter(Boolean);
     return box.child(this.card(p, [
-      v_flex().gap(10)
-        .child(div().text_size(12.5).font_semibold().text_color(p.fg).whitespace_normal().child(mod.name))
-        .child(h_flex().child(this.pill(p, status, color))),
-      v_flex().gap(8).children(facts.map(([l, v]) => this.fact(p, l, v))),
+      h_flex().gap(14).items_center()
+        .child(this.tile(p, mod.name, color, 56))
+        .child(v_flex().flex_1().min_w(0).gap(8)
+          .child(div().text_size(20).font_semibold().text_color(p.fg).whitespace_normal().child(mod.name))
+          .child(h_flex().child(this.pill(p, status, color)))),
+      v_flex().children(facts.map(([l, v]) => this.fact(p, l, v))),
       div().text_size(12).text_color(p.muted).whitespace_normal().child(note),
-      h_flex().gap(10).flex_wrap().children(actions),
+      v_flex().gap(8).children(actions.map((a) => a.w_full())),
     ]));
   }
 
@@ -669,14 +686,16 @@ export default class ModManager extends View {
     const rows = pageItems.map((it, i) => {
       const sel = i === m.at;
       const has = installed.has(it.fullName);
-      return h_flex().id(`market-${it.fullName}`).role("list_box_option").aria_selected(sel).h(ROW).pr(14).gap(12).items_center().flex_none()
-        .rounded(0).cursor_pointer().when(sel, (el) => el.bg(p.sel)).hover((s) => s.bg(sel ? p.sel : p.hover))
+      return h_flex().id(`market-${it.fullName}`).role("list_box_option").aria_selected(sel).h(ROW).pr(16).gap(14).items_center().flex_none()
+        .rounded(0).cursor_pointer().border_b_1().border_color(p.border).when(sel, (el) => el.bg(p.sel)).hover((s) => s.bg(sel ? p.sel : p.hover))
         .on_click((_e, cx) => { m.at = i; this.handle.focus(); cx.notify(); })
-        .child(div().w(4).h(24).rounded(0).bg(p.bar).when(!sel, (el) => el.opacity(0)))
-        .child(div().w(18).flex_none().text_size(12.5).text_color(p.ok).child(has ? "✓" : ""))
-        .child(div().w(280).flex_none().truncate().text_size(11.5).font_weight(sel ? 600 : 400).text_color(p.fg).child(it.fullName))
-        .child(div().flex_1().min_w(0).truncate().text_size(12).text_color(p.muted).child(it.description))
-        .child(div().flex_none().text_size(12).text_color(p.fg).child(`★ ${it.stars}`));
+        .child(div().w(3).h_full().rounded(0).bg(sel ? p.bar : "#00000000"))
+        .child(this.tile(p, it.fullName.split("/").pop(), has ? p.ok : p.accent, 34))
+        .child(v_flex().flex_1().min_w(0).gap(2)
+          .child(div().truncate().text_size(13).font_weight(sel ? 600 : 500).text_color(p.fg).child(it.fullName))
+          .child(div().truncate().text_size(11).text_color(p.dim).child(it.description || "No description.")))
+        .when(has, (el) => el.child(this.pill(p, "Installed", p.ok)))
+        .child(div().flex_none().w(56).text_right().text_size(12).font_semibold().text_color(p.fg).child(`★ ${it.stars}`));
     });
     const status = m.loading && !pageItems.length ? "Loading Community mods…" : m.error ? m.error : !m.total ? "No mods found." : null;
     const controls = h_flex().gap(10).items_center()
@@ -701,15 +720,17 @@ export default class ModManager extends View {
     if (!it) return box;
     const has = installed.has(it.fullName);
     return box.child(this.card(p, [
-      v_flex().gap(10)
-        .child(div().text_size(12.5).font_semibold().text_color(p.fg).whitespace_normal().child(it.fullName))
-        .child(h_flex().gap(8).child(this.pill(p, has ? "Installed" : "Not installed", has ? p.ok : p.muted)).child(this.pill(p, `★ ${it.stars}`, p.fg))),
+      h_flex().gap(14).items_center()
+        .child(this.tile(p, it.fullName.split("/").pop(), has ? p.ok : p.accent, 56))
+        .child(v_flex().flex_1().min_w(0).gap(8)
+          .child(div().text_size(18).font_semibold().text_color(p.fg).whitespace_normal().child(it.fullName))
+          .child(h_flex().gap(8).child(this.pill(p, has ? "Installed" : "Not installed", has ? p.ok : p.muted)).child(this.pill(p, `★ ${it.stars}`, p.fg)))),
       div().text_size(12.5).text_color(p.fg).whitespace_normal().child(it.description || "No description."),
       this.fact(p, "Updated", it.pushedAt?.slice(0, 10) ?? "?"),
       div().text_size(12).text_color(p.muted).whitespace_normal().child("Install opens a review first: what it adds, whether it runs programs, reaches the network or touches files."),
-      h_flex().gap(10).flex_wrap()
-        .child(this.button(p, "act-review", has ? "Review update" : "Review & install", "enter", (cx) => cx.spawn(async (cx) => this.startReview(cx, it.fullName)), "primary"))
-        .child(this.button(p, "act-open", "Open repo", "o", () => this.openUrl(it.url))),
+      v_flex().gap(8)
+        .child(this.button(p, "act-review", has ? "Review update" : "Review & install", "enter", (cx) => cx.spawn(async (cx) => this.startReview(cx, it.fullName)), "primary").w_full())
+        .child(this.button(p, "act-open", "Open repo", "o", () => this.openUrl(it.url)).w_full()),
     ]));
   }
 
@@ -768,12 +789,16 @@ export default class ModManager extends View {
 
   render(_cx) {
     const p = palette(theme());
-    return v_flex().id("root").role("dialog").accessibility_label("Mod Manager").track_focus(this.handle).size_full()
-      .px(24).py(20).gap(16).bg(p.bg).text_size(12.5).text_color(p.fg)
-      .on_key_down((e, cx) => this.onKey(e, cx))
-      .child(this.header(p))
-      .child(this.banner(p) ?? div())
-      .child(this[`${this.mode}View`](p))
-      .child(this.footer(p));
+    // Full window over the dimmed app, one panel in the middle (at most 1180x780, as the window allows).
+    const zoom = settings().zoom ?? 1, w = Math.min(1180, (this.size?.width ?? 1280) / zoom - 64), h = Math.min(780, (this.size?.height ?? 860) / zoom - 64);
+    return div().id("stage").size_full().flex().items_center().justify_center().bg("#000000b3")
+      .on_size_change((size, cx) => { this.size = size; cx.notify(); })
+      .child(v_flex().id("root").role("dialog").accessibility_label("Mod Manager").track_focus(this.handle).w(w).h(h)
+        .px(28).pt(22).pb(24).gap(18).bg(p.bg).border_2().border_color(p.bar).text_size(12.5).text_color(p.fg).overflow_hidden()
+        .on_key_down((e, cx) => this.onKey(e, cx))
+        .child(this.header(p))
+        .child(this.banner(p) ?? div())
+        .child(this[`${this.mode}View`](p))
+        .child(this.footer(p)));
   }
 }
