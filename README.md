@@ -18,7 +18,7 @@ The layout makes your Herdr window flat and square, with bordered tiles that flo
 - **Sidebar**: lists spaces and agents with their status. You can resize it, and you can fold it into an icon rail.
 - **Tabs**: each tab shows the icons of its agents, what they work on, and their status.
 - **Side panel**: shows your files with colored icons. It also shows Git changes, commits, pushes, pulls and switches branches. Changes can make a new branch, wrap long diff lines, and open a full commit graph (Graph, then ← Changes to go back). The graph shows branch lanes and labels, and its right-click menus check out, merge, rebase, reset and tag.
-- **Dialogs**: the command palette, Settings and a mod manager have the same square look.
+- **Dialogs**: the command palette, Settings, a mod manager and a Keybindings list (every key Herdr has, from the sidebar footer) have the same square look.
 - **Themes**: the layout comes with every Omarchy color theme and its wallpapers. A theme changes the color of each part of the window and brings its own wallpaper.
 
 ## Install
