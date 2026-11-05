@@ -101,9 +101,6 @@ export default class OmarchyBar extends View {
         .on_click(() => run(cmd))
         .child(svg(`mods/terminals-bar/${icon}.svg`).size(14)));
     return row.justify_end()
-      .child(own(div().id("mods").flex_none().w(30).h_full().flex().items_center().justify_center().cursor_pointer().text_color(t.dim)
-        .hover((s) => s.bg(t.hover).text_color(t.foreground)).on_click(() => run("mod.open", { name: "omarchy-mod-manager" }))
-        .child(svg("mods/omarchy-chrome/layers.svg").size(14))))
       .child(own(div().id("search").flex_none().w(30).h_full().flex().items_center().justify_center().cursor_pointer().text_color(t.dim)
         .hover((s) => s.bg(t.hover).text_color(t.foreground)).on_click(() => run("mod.open", { name: "picker" }))
         .child(svg("mods/omarchy-chrome/search.svg").size(14))))

@@ -124,7 +124,7 @@
               "id": "sidebar-footer",
               "type": "block",
               "size": {
-                "px": 106
+                "px": 136
               },
               "content": {
                 "mod": "omarchy-chrome",

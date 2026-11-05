@@ -55,6 +55,7 @@ export default class WorkspaceChrome extends View {
         .child(row("settings", "settings", "Settings", false, () => run("mod.open", { name: "omarchy-settings" }))
           .when(Boolean(updates().app.ready), el => el.child(div().size(6).rounded(0).bg(t.accent).when(collapsed, d => d.absolute().top(2).right(2)))))
         .child(row("keys", "keyboard", "Keybindings", false, () => run("mod.open", { name: "omarchy-keys" })))
+        .child(row("mods", "layers", "Mods", false, () => run("mod.open", { name: "omarchy-mod-manager" })))
         .child(row("machine", "plus", "Add machine", true, () => run("mod.open", { name: "machine-add" })));
     }
     return h_flex().size_full().bg(t.chrome).pl(collapsed ? 6 : 14).pr(10).gap(4).items_center().text_size(12)
