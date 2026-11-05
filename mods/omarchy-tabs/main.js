@@ -86,6 +86,8 @@ export default class Tabs extends View {
       const icons = (multi ? programs.slice(0, 3) : [program]).filter(p => p?.icon);
       return h_flex().id(`tab-${c.id}`).w(240).h_full().px(10).gap(7).rounded(0).items_center().flex_none().text_size(12)
         .tooltip(`${name}\n${detail}`)
+        // The close button shows on the active tab and on the one under the pointer.
+        .on_hover((over, cx) => { if (over) this.overTab = c.id; else if (this.overTab === c.id) this.overTab = null; cx.notify(); })
         .border_r(1).border_color(t.border)
         .bg(c.active ? sel : idle).text_color(c.active ? t.foreground : t.muted)
         .hover(s => s.bg(c.active ? sel : hov))
@@ -101,7 +103,7 @@ export default class Tabs extends View {
         .when(Boolean(status), el => el.child(div().flex_none().text_size(10.5).text_color(t[c.status] ?? t.muted).child(status)))
         .when(c.status === "working", el => el.child(svg("mods/workspace-chrome/spinner.svg").size(12).flex_none().text_color(t.working).spin(900)))
         .when(c.status === "blocked" || c.status === "done", el => el.child(div().size(6).rounded(0).bg(t[c.status])))
-        .when(c.active, el => el.child(div().id(`close-${c.id}`).flex_none().p(3).rounded(0).text_color(t.dim).hover(s => s.bg(hov).text_color(t.foreground)).on_mouse_down("left", stop).on_click((_e, cx) => { cx.stop_propagation(); run("tab.close", { id: c.id }); }).child(svg("mods/pane/close.svg").size(14))));
+        .when(c.active || this.overTab === c.id, el => el.child(div().id(`close-${c.id}`).flex_none().p(3).rounded(0).text_color(t.dim).hover(s => s.bg(hov).text_color(t.foreground)).on_mouse_down("left", stop).on_click((_e, cx) => { cx.stop_propagation(); run("tab.close", { id: c.id }); }).child(svg("mods/pane/close.svg").size(14))));
     };
     const root = layout();
     const panel = find(root, "panel"), body = find(root, "panel-body");
