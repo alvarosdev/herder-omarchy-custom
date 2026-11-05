@@ -16,7 +16,7 @@ The layout makes your Herdr window flat and square, with bordered tiles that flo
 
 - **Top bar**: shows your spaces, live AI usage for the agents on screen, and the window buttons.
 - **Sidebar**: lists spaces and agents with their status. You can resize it, and you can fold it into an icon rail.
-- **Tabs**: each tab shows the icons of its agents, what they work on, and their status.
+- **Tabs**: each tab shows the icons of its agents, what they work on, and their status. `ctrl-alt-shift-t` reopens the last closed tab: each pane in its folder, Claude and Codex back in the conversation they had.
 - **Side panel**: shows your files with colored icons. It also shows Git changes, commits, pushes, pulls and switches branches. Changes can make a new branch, wrap long diff lines, and open a full commit graph (Graph, then ← Changes to go back). The graph shows branch lanes and labels, and its right-click menus check out, merge, rebase, reset and tag.
 - **Dialogs**: the command palette, Settings, a mod manager and a Keybindings list (every key Herdr has) have the same square look. Keybindings and Mods open from the sidebar footer.
 - **Themes**: the layout comes with every Omarchy color theme and its wallpapers. A theme changes the color of each part of the window and brings its own wallpaper. The theme switcher shows Omarchy's preview of each theme: ← and → choose, Enter applies.
@@ -48,6 +48,7 @@ These keys work only in the Omarchy layout. They follow Omarchy: its Herdr keyma
 | `alt-up` / `alt-down` | Previous / next space |
 | `alt-enter` / `alt-shift-enter` | Split the pane right / down |
 | `super-return` | New terminal |
+| `ctrl-alt-shift-t` | Reopen the last closed tab, with its agents resumed |
 | `super-w` | Close the pane |
 | `super-f` | Zoom the pane |
 | `super-c` / `super-v` | Copy / paste |

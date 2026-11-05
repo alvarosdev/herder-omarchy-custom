@@ -3,7 +3,11 @@ import { View, div, svg, image } from "gpui-kit";
 import { h_flex } from "gpui-base";
 import { syncNames } from "./names.js";
 import { renderPaneHeader } from "./pane.js";
-import { spaces, panes, terminals, props, run, openOverlay, theme, shared, layout } from "herdr";
+import { spaces, panes, terminals, props, run, openOverlay, theme, shared, setShared, layout, exec, readTextFile, home, nextCommand, notify } from "herdr";
+import { SCAN, parseScan, quote, resumeCommand, argvOf } from "./reopen.js";
+
+// The last closed tabs (newest last), kept across restarts for ctrl-alt-shift-t.
+const CLOSED = "omarchy-tabs.closed";
 
 function find(node, id) {
   if (node?.id === id) return node;
@@ -20,6 +24,61 @@ export default class Tabs extends View {
     if (_props?.pane) return;
     this.pressed = null;
     this.panels = JSON.parse(localStorage.getItem("panels") ?? "{}");
+    this.snap = {};
+    // Each step touches cx, so a reloaded strip's old loop ends instead of eating the key.
+    cx.spawn(async (cx) => {
+      for (;;) {
+        if ((await nextCommand()) === "reopen") this.reopen();
+        cx.notify();
+      }
+    });
+  }
+
+  // Keeps what every tab runs, so a tab that goes can come back: each pane's folder and
+  // the command that resumes its agent (Claude by session, Codex by its session file).
+  track(cx) {
+    const ids = new Set(spaces().flatMap(s => s.tabs.map(t => t.id)));
+    if (this.known) {
+      const gone = [...this.known].filter(id => !ids.has(id) && this.snap[id]?.panes.length);
+      if (gone.length) setShared(CLOSED, [...(shared(CLOSED) ?? []), ...gone.map(id => this.snap[id])].slice(-10));
+      for (const id of gone) delete this.snap[id];
+    }
+    this.known = ids;
+    const sig = JSON.stringify(panes().filter(p => p.terminal).map(p => [p.tab, p.terminal, p.cwd, p.program.key, p.status]));
+    if (sig === this.sig) return;
+    this.sig = sig;
+    cx.spawn(async () => {
+      const r = await exec("sh", ["-c", SCAN]).catch(() => null);
+      const { shell, procs } = parseScan(r?.stdout ?? "");
+      const snap = {};
+      for (const s of spaces()) for (const t of s.tabs) {
+        const list = [];
+        for (const p of panes().filter(p => p.tab === t.id && p.terminal)) {
+          const proc = procs[p.terminal];
+          const dir = proc?.dir || `${home()}/.claude`;
+          let session = null;
+          if (proc?.program === "claude") {
+            const text = await readTextFile(`${dir}/sessions/${proc.pid}.json`).catch(() => null);
+            try { session = JSON.parse(text ?? "null")?.sessionId ?? null; } catch { /* mid-write: --continue */ }
+          }
+          // Agents this can't resume start again; shells come back in their folder.
+          const cmd = resumeCommand(proc, session, home()) ?? (p.program.agent && !proc ? quote(p.program.key === "claude-code" ? "claude" : p.program.key) : null);
+          list.push({ cwd: p.cwd, cmd });
+        }
+        snap[t.id] = { space: s.id, name: t.named ? t.name : null, shell, panes: list };
+      }
+      this.snap = snap;
+    });
+  }
+
+  reopen() {
+    const closed = shared(CLOSED) ?? [], last = closed[closed.length - 1];
+    if (!last) return notify({ title: "No closed tab to reopen" });
+    setShared(CLOSED, closed.slice(0, -1));
+    const [first, ...rest] = last.panes;
+    const space = spaces().some(s => s.id === last.space) ? last.space : undefined;
+    run("tab.new", { space, name: last.name ?? undefined, folder: first.cwd ?? undefined, argv: argvOf(first.cmd, last.shell) });
+    for (const p of rest) run("terminal.open", { folder: p.cwd ?? undefined, argv: argvOf(p.cmd, last.shell), place: "right" });
   }
 
   // The side panel is remembered per space: switching shows that space's choice
@@ -52,8 +111,9 @@ export default class Tabs extends View {
     localStorage.setItem("panels", JSON.stringify(this.panels));
   }
 
-  render() {
+  render(cx) {
     if (props()?.pane) return renderPaneHeader(this);
+    this.track(cx);
     syncNames();
     const t = theme();
     const space = spaces().find(p => p.active);
