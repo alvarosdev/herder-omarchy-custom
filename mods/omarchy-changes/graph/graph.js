@@ -112,8 +112,8 @@ async function pool(items, limit, fn) {
   let next = 0;
   await Promise.all(Array.from({ length: Math.min(limit, items.length) }, async () => { while (next < items.length) await fn(items[next++]); }));
 }
-const depthSetting = () => depthOf(shared("omarchy-git-graph.depth"));
-const tagsShown = () => shared("omarchy-git-graph.tags") === true;
+const depthSetting = () => depthOf(shared("omarchy-changes.graph.depth"));
+const tagsShown = () => shared("omarchy-changes.graph.tags") === true;
 
 
 export class Graph {
@@ -123,7 +123,7 @@ export class Graph {
     this.listId = `graph-rows-${Math.random().toString(36).slice(2)}`;
     this.diffId = `${this.listId}-diff`;
     this.all = true; this.remotes = true; this.wide = false; this.graphMax = 160; this.scale = null;
-    this.watchToken = 0; this.seenChange = shared("omarchy-git-graph.changed");
+    this.watchToken = 0; this.seenChange = shared("omarchy-changes.graph.changed");
     this.cols = withDefaults(); this.drag = null;
     this.seen = new Map(); this.commitDetails = new Map();
     // Fetch all: its progress for one Manygit folder, and each repository's last failure.
@@ -328,7 +328,7 @@ export class Graph {
       const web = webUrl((remotes.find((x) => x.name === "origin") ?? remotes[0])?.url ?? "");
       const ctx = { root: r.path, on, current: st?.detached ? null : st?.branch ?? null, head: st?.head ?? null, branches: [], remotes: remotes.map((x) => x.name) };
       const target = { kind: "repo", path: r.path, status: st, agents: installed, web };
-      openOverlay({ mod: "omarchy-git-graph", kind: "popup", at: "pointer", width: 268, height: menuHeight(menuFor(target, ctx)), props: { role: "menu", target, ctx } });
+      openOverlay({ mod: "omarchy-changes", kind: "popup", at: "pointer", width: 268, height: menuHeight(menuFor(target, ctx)), props: { role: "menu", target, ctx } });
       // Ask again in the background, so a newly installed agent shows next time.
       knownAgents({ on }).then((a) => this.agents.set(where, a)).catch(() => {});
     });
@@ -434,7 +434,7 @@ export class Graph {
     cx.notify();
   }
 
-  saveColumns() { this.seenCols = JSON.stringify(this.cols); setShared("omarchy-git-graph.columns", this.cols); }
+  saveColumns() { this.seenCols = JSON.stringify(this.cols); setShared("omarchy-changes.graph.columns", this.cols); }
   // Where the description column ends: labels past it are clipped, so not clickable.
   labelLimit() {
     if (!this.width) return Infinity;
@@ -487,7 +487,7 @@ export class Graph {
       : hit && hit.part.kind !== "head" ? { kind: hit.part.kind, name: hit.part.name, commit: brief(commit) }
       : { kind: "commit", commit: brief(commit) };
     const items = menuFor(target, this.ctx);
-    openOverlay({ mod: "omarchy-git-graph", kind: "popup", at: "pointer", width: 268, height: menuHeight(items), props: { role: "menu", target, ctx: this.ctx } });
+    openOverlay({ mod: "omarchy-changes", kind: "popup", at: "pointer", width: 268, height: menuHeight(items), props: { role: "menu", target, ctx: this.ctx } });
   }
 
   pick(commit, cx) {
@@ -650,7 +650,7 @@ export class Graph {
   }
 
   openSettings() {
-    openOverlay({ mod: "omarchy-git-graph", kind: "popup", at: "pointer", width: 240, height: 92, props: { role: "settings" } });
+    openOverlay({ mod: "omarchy-changes", kind: "popup", at: "pointer", width: 240, height: 92, props: { role: "settings" } });
   }
 
   // Manygit's repository pane: grouped by folder, each row its branch, uncommitted
@@ -856,10 +856,10 @@ export class Graph {
 
   render(cx) {
     if (this.key() !== this.context) this.refresh(cx);
-    const changed = shared("omarchy-git-graph.changed");
-    const savedCols = shared("omarchy-git-graph.columns"), seen = JSON.stringify(savedCols ?? null);
+    const changed = shared("omarchy-changes.graph.changed");
+    const savedCols = shared("omarchy-changes.graph.columns"), seen = JSON.stringify(savedCols ?? null);
     if (!this.drag && seen !== this.seenCols) { this.seenCols = seen; this.cols = withDefaults(savedCols); }
-    const fetched = shared("omarchy-git-graph.fetched");
+    const fetched = shared("omarchy-changes.graph.fetched");
     if (fetched?.at !== this.seenFetched) { this.seenFetched = fetched?.at; if (fetched?.root) this.fetchErrors.delete(fetched.root); }
     // After an action (here, or from a Manygit row's menu) the graph or the list reads again.
     if (changed !== this.seenChange) { this.seenChange = changed; if (this.root || this.state === "workspace") this.refresh(cx); }

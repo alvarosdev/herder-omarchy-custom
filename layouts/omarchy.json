@@ -230,8 +230,9 @@
                               "id": "git-graph",
                               "type": "block",
                               "content": {
-                                "mod": "omarchy-git-graph",
+                                "mod": "omarchy-changes",
                                 "props": {
+                                  "view": "graph",
                                   "back": "changes-view"
                                 }
                               }

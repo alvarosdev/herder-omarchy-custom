@@ -1,5 +1,6 @@
 import { View, div, image, svg } from "gpui-kit";
 import { fileAppearance, gitStatus, statusColor } from "./appearance.js";
+import GitGraph from "./graph/main.js";
 import { v_flex, h_flex, InputState, Input, Scrollbar, v_virtual_list } from "gpui-base";
 import { spaces, panes, focused, exec, readTextFile, watchFolder, theme, settings, props, run, shared, setShared } from "herdr";
 
@@ -31,6 +32,9 @@ function diffRows(lines) {
 
 export default class Changes extends View {
   init(_props, cx) {
+    // One mod, two views: props {view: "graph"} is the commit graph (graph/), and the
+    // graph's menus and dialogs come back here with props.role.
+    if (props()?.view === "graph" || props()?.role) { this.graph = new GitGraph(); this.graph.init(_props, cx); return; }
     this.files = []; this.rows = []; this.diffWidth = 0; this.message = ""; this.handle = cx.focus_handle();
     this.input = InputState.new({ placeholder: "Commit message" });
     this.input.on("change", (_e, cx) => {
@@ -297,6 +301,7 @@ export default class Changes extends View {
   }
 
   render(cx) {
+    if (this.graph) return this.graph.render(cx);
     if (key() !== this.context) this.refresh(cx);
     const t = theme(), add = this.files.reduce((n, f) => n + f.add, 0), del = this.files.reduce((n, f) => n + f.del, 0);
     const enabled = Boolean(this.message.trim() && this.root && !this.busy && !this.loading);

@@ -7,7 +7,7 @@ import { v_flex, h_flex, TextView } from "gpui-base";
 import { props, shared, setShared, closeOverlay, openOverlay, theme, settings } from "herdr";
 
 export const VERSION = "0.3.0";
-const CHECK = false; // omarchy-git-graph is a fork: upstream releases are not its updates.
+const CHECK = false; // the Changes graph is a fork: upstream releases are not its updates.
 const REPO = "rabeeh-ta/herdr-git-graph";
 const DAY = 24 * 60 * 60 * 1000;
 export const PROMPT = `Update the git-graph mod from github.com/${REPO}`;
@@ -22,8 +22,8 @@ export function newer(a, b) {
 
 // Kept in shared state: it lasts across restarts and every graph copy sees it.
 // A result saved for another repository (a fork, a test) counts as never checked.
-const state = () => { const s = shared("omarchy-git-graph.update") ?? {}; return s.repo === REPO ? s : { off: s.off }; };
-const save = (change) => setShared("omarchy-git-graph.update", { ...state(), ...change, repo: REPO });
+const state = () => { const s = shared("omarchy-changes.graph.update") ?? {}; return s.repo === REPO ? s : { off: s.off }; };
+const save = (change) => setShared("omarchy-changes.graph.update", { ...state(), ...change, repo: REPO });
 
 // The release to offer, or null.
 export function available() {
@@ -48,7 +48,7 @@ export async function check() {
 }
 
 export function openUpdate() {
-  openOverlay({ mod: "omarchy-git-graph", kind: "dialog", width: 460, height: 400, props: { role: "update" } });
+  openOverlay({ mod: "omarchy-changes", kind: "dialog", width: 460, height: 400, props: { role: "update" } });
 }
 
 // The update window, opened with props { role: "update" }.

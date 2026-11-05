@@ -7,7 +7,7 @@ import { menuFor } from "./git.js";
 import { perform, openDialog, showChanges } from "./act.js";
 
 // A glyph of this mod, or another mod's icon by its path (Herdr's own Changes icon).
-export const icon = (name) => (name.includes("/") ? name : `mods/omarchy-git-graph/icons/${name}.svg`);
+export const icon = (name) => (name.includes("/") ? name : `mods/omarchy-changes/graph/icons/${name}.svg`);
 
 export class Menu {
   init(cx) {

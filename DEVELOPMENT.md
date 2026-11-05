@@ -11,8 +11,8 @@ Each folder under `mods/` is a self-contained Herdr mod. `main.js` is its entry 
 | Theme wallpapers | `backgrounds/omarchy/<theme>/` |
 | Wallpaper follows theme, next-wallpaper key | `mods/omarchy-bar/main.js` |
 | Theme picker | `mods/omarchy-themes/main.js` |
-| Commit graph table, header, Manygit list | `mods/omarchy-git-graph/graph.js` |
-| Git commands, parsing, menus, dialogs | `mods/omarchy-git-graph/git.js` |
+| Commit graph table, header, Manygit list | `mods/omarchy-changes/graph/graph.js` |
+| Git commands, parsing, menus, dialogs | `mods/omarchy-changes/graph/git.js` |
 | Settings state, persistence, machine actions | `mods/omarchy-settings/main.js` |
 | Layout, theme, appearance, font pickers | `mods/omarchy-settings/look.js` |
 | Settings buttons, rows, toggles, steppers | `mods/omarchy-settings/controls.js` |

@@ -34,7 +34,7 @@ The agent copies the layout, mods, themes and wallpapers into `~/.config/herdr-a
 > [!NOTE]
 > Some mods use the network or run programs:
 > - `omarchy-ai-usage` reads the local login files of your AI agents (Claude, Codex, Copilot, OpenCode and Pi). It uses the tokens in them to get your usage from the API of each provider.
-> - `omarchy-spaces`, `omarchy-files`, `omarchy-changes` and `omarchy-git-graph` run `git` in your folders. `omarchy-git-graph` also runs `find` to look for repos in a folder that is not one.
+> - `omarchy-spaces`, `omarchy-files` and `omarchy-changes` run `git` in your folders. The commit graph in `omarchy-changes` also runs `find` to look for repos in a folder that is not one.
 > - `omarchy-mod-manager` searches GitHub for mods. It runs `git` and `gh` to download and install them.
 
 ## Keys

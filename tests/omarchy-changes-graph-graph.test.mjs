@@ -1,10 +1,10 @@
 // Tests the mod's git logic against real throwaway repos (a bare "remote"
 // included): parsing, labels and where they sit, lanes, menus, validation,
 // and every action the menus run. Run: node tests/graph.test.mjs
-import * as G from "../mods/omarchy-git-graph/git.js";
-import { layoutLanes } from "../mods/omarchy-git-graph/lanes.js";
-import * as R from "../mods/omarchy-git-graph/repos.js";
-import { executeAction } from "../mods/omarchy-git-graph/execute.js";
+import * as G from "../mods/omarchy-changes/graph/git.js";
+import { layoutLanes } from "../mods/omarchy-changes/graph/lanes.js";
+import * as R from "../mods/omarchy-changes/graph/repos.js";
+import { executeAction } from "../mods/omarchy-changes/graph/execute.js";
 import { tmpdir } from "node:os";
 import { execFileSync, spawnSync } from "node:child_process";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, statSync, symlinkSync } from "node:fs";
