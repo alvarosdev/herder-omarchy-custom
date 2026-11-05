@@ -1,9 +1,81 @@
+<div align="center">
+
 # Omarchy for Herdr
 
-A layout for the [Herdr](https://herdr.dev) app that looks like the [Omarchy](https://github.com/basecamp/omarchy) desktop: flat, square, bordered tiles floating over a wallpaper. A thin top bar shows your spaces, live AI usage for the agents on screen and the window buttons. The sidebar lists spaces and agents with their status, resizes, and folds into an icon rail. A side panel browses files and Git changes, commits, pushes and switches branches. The palette, Settings and a mod manager match the look, and every Omarchy color theme comes with it.
+**A [Herdr](https://herdr.dev) layout that looks like the [Omarchy](https://github.com/basecamp/omarchy) desktop.**
 
-![Omarchy](preview.png)
+[Features](#features) · [Install](#install) · [Keys](#keys) · [What is inside](#what-is-inside) · [Development](#development)
 
-The repo is laid out like a Herdr home: `layouts/`, `mods/`, `themes/`, `backgrounds/` and `keys.json`. [`RECIPE.md`](RECIPE.md) is the brief an agent can rebuild it from. See [`DEVELOPMENT.md`](DEVELOPMENT.md) for the code map and verification commands.
+![Omarchy layout in Herdr](preview.png)
 
-To install, ask your agent: "Read `~/.config/herdr-app/AGENTS.md`, then add the layout from github.com/shafiqimtiaz/herdr-omarchy." Then switch to it with `ctrl-shift-l`.
+</div>
+
+The layout makes your Herdr window flat and square, with bordered tiles that float over a wallpaper. It shows your spaces, your agents and their status, and the AI usage of the agents on screen. A side panel shows your files and Git changes. Every Omarchy color theme comes with it.
+
+## Features
+
+- **Top bar**: shows your spaces, live AI usage for the agents on screen, and the window buttons.
+- **Sidebar**: lists spaces and agents with their status. You can resize it, and you can fold it into an icon rail.
+- **Tabs**: each tab shows the icons of its agents, what they work on, and their status.
+- **Side panel**: shows your files with colored icons. It also shows Git changes, commits, pushes, pulls and switches branches.
+- **Dialogs**: the command palette, Settings and a mod manager have the same square look.
+- **Themes**: the layout comes with every Omarchy color theme. A theme changes the color of each part of the window.
+
+## Install
+
+Ask your agent in Herdr:
+
+```text
+Read ~/.config/herdr-app/AGENTS.md, then add the layout from github.com/shafiqimtiaz/herdr-omarchy.
+```
+
+The agent copies the layout, mods, themes and wallpaper into `~/.config/herdr-app`. Your own layout stays. Press `ctrl-shift-l` to change between layouts.
+
+> [!NOTE]
+> Some mods use the network or run programs:
+> - `omarchy-ai-usage` reads the local login files of your AI agents (Claude, Codex, Copilot, OpenCode and Pi). It uses the tokens in them to get your usage from the API of each provider.
+> - `omarchy-spaces`, `omarchy-files` and `omarchy-changes` run `git` in your folders.
+> - `omarchy-mod-manager` searches GitHub for mods. It runs `git` and `gh` to download and install them.
+
+## Keys
+
+These keys work only in the Omarchy layout:
+
+| Key | Action |
+| --- | --- |
+| `ctrl-shift-p` | Open the command palette |
+| `ctrl-,` | Open Settings |
+| `ctrl-shift-m` | Open the mod manager |
+| `ctrl-shift-l` | Change to a different layout |
+
+## What is inside
+
+The repo has the same structure as a Herdr home folder:
+
+| Path | Contents |
+| --- | --- |
+| `layouts/omarchy.json` | The layout: tile tree, sizes and spacing |
+| `mods/` | One folder for each mod. Each mod installs on its own. |
+| `themes/` | The Omarchy color themes |
+| `backgrounds/` | The wallpaper |
+| `keys.json` | The layout keys |
+| `RECIPE.md` | The full brief. An agent can build the layout again from it. |
+
+## Development
+
+Run the tests from the repo root. They use the Node test runner and need no install step:
+
+```sh
+npm test
+```
+
+Check each mod that you change:
+
+```sh
+herdr-app check mods/omarchy-settings
+```
+
+[`DEVELOPMENT.md`](DEVELOPMENT.md) shows which file to change for each part of the layout.
+
+> [!TIP]
+> Your edits in this repo do not change the copy in `~/.config/herdr-app`. Copy the changed files there to see them in Herdr.
