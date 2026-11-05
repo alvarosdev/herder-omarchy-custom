@@ -20,14 +20,14 @@ Each folder under `mods/` is a self-contained Herdr mod. `main.js` is its entry 
 
 ## Check changes
 
-From this folder, run `npm test`. Tests use Node's built-in runner with no installation step. Provider tests use fake login files and HTTP responses.
+From the repo root, run `npm test`. Tests use Node's built-in runner with no installation step. Provider tests use fake login files and HTTP responses.
 
 From the repo root, check each changed mod, for example:
 
 ```sh
-herdr-app check omarchy/mods/omarchy-settings
-herdr-app check omarchy/mods/omarchy-ai-usage
-herdr-app check omarchy/mods/omarchy-mod-manager
+herdr-app check mods/omarchy-settings
+herdr-app check mods/omarchy-ai-usage
+herdr-app check mods/omarchy-mod-manager
 ```
 
 `check` loads the entry point, helper imports, and initial UI. It does not exercise later clicks or asynchronous states. When changing UI behavior, also exercise the affected picker, panel, or dialog in Herdr. Repo edits and installed copies under `~/.config/herdr-app` are separate unless explicitly linked.
