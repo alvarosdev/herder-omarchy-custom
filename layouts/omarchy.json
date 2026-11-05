@@ -213,17 +213,30 @@
                         },
                         {
                           "id": "changes",
-                          "type": "block",
-                          "content": {
-                            "mod": "omarchy-changes"
-                          }
-                        },
-                        {
-                          "id": "graph",
-                          "type": "block",
-                          "content": {
-                            "mod": "omarchy-git-graph"
-                          }
+                          "type": "stack",
+                          "active": "changes-view",
+                          "children": [
+                            {
+                              "id": "changes-view",
+                              "type": "block",
+                              "content": {
+                                "mod": "omarchy-changes",
+                                "props": {
+                                  "graph": "git-graph"
+                                }
+                              }
+                            },
+                            {
+                              "id": "git-graph",
+                              "type": "block",
+                              "content": {
+                                "mod": "omarchy-git-graph",
+                                "props": {
+                                  "back": "changes-view"
+                                }
+                              }
+                            }
+                          ]
                         },
                         {
                           "id": "browser-notes",

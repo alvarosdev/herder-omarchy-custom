@@ -1,7 +1,7 @@
 import { View, div, image, svg } from "gpui-kit";
 import { fileAppearance, gitStatus, statusColor } from "./appearance.js";
 import { v_flex, h_flex, InputState, Input, Scrollbar, v_virtual_list } from "gpui-base";
-import { spaces, panes, focused, exec, readTextFile, watchFolder, theme, settings } from "herdr";
+import { spaces, panes, focused, exec, readTextFile, watchFolder, theme, settings, props, run, shared, setShared } from "herdr";
 
 function location() {
   const space = spaces().find((s) => s.active), f = focused();
@@ -41,6 +41,8 @@ export default class Changes extends View {
     this.input.on("submit", (_e, cx) => this.commit(cx));
     this.input.on("focus", (_e, cx) => { this.typing = true; cx.notify(); });
     this.input.on("blur", (_e, cx) => { this.typing = false; cx.notify(); });
+    this.branchInput = InputState.new({ placeholder: "New branch name" });
+    this.branchInput.on("submit", (_e, cx) => this.createBranch(cx));
     this.refresh(cx);
     cx.timer.every(10000, (cx) => this.refresh(cx));
   }
@@ -186,7 +188,7 @@ export default class Changes extends View {
 
   // Local branches, then remote-only ones by short name (`git switch` creates the tracking branch).
   toggleBranches(cx) {
-    if (this.branches) { this.branches = null; cx.notify(); return; }
+    if (this.branches) { this.branches = null; this.naming = false; cx.notify(); return; }
     if (!this.root) return;
     const root = this.root, on = this.on, context = this.context;
     this.branches = [];
@@ -205,6 +207,15 @@ export default class Changes extends View {
     cx.notify();
   }
 
+  // Branches from HEAD and switches to it; uncommitted changes come along.
+  createBranch(cx) {
+    const name = this.branchInput.value().trim();
+    if (!name) return;
+    if (/\s/.test(name) || name.startsWith("-")) { this.note = "Branch name can't have spaces or start with -"; cx.notify(); return; }
+    this.branches = null; this.naming = false;
+    this.git(cx, "Branch", [["switch", "-c", name]], () => this.branchInput.set_value(""));
+  }
+
   switchTo(name, cx) {
     this.branches = null;
     this.git(cx, "Switch", [["switch", name]], () => { this.open = null; this.closed = false; this.setLines([]); });
@@ -213,6 +224,14 @@ export default class Changes extends View {
   branchList(t) {
     const current = this.sync?.branch;
     return v_flex().id("branch-list").flex_none().max_h(220).overflow_y_scrollbar().py(4).border_b(1).border_color(t.border).bg(t.chrome)
+      .child(this.naming
+        ? h_flex().h(30).flex_none().px(10).gap(6).items_center()
+          .child(div().id("new-branch-name").flex_1().min_w(0).h(24).px(8).flex().items_center().border_1().border_color(t.accent).on_mouse_down("left", (_e, cx) => cx.stop_propagation())
+            .child(Input.new(this.branchInput).h_full().text_size(12).text_color(t.foreground)))
+          .child(div().id("new-branch-create").h(24).px(10).flex().items_center().bg(t.accent).text_color(t.background).text_size(12).cursor_pointer().on_click((_e, cx) => this.createBranch(cx)).child("Create"))
+        : h_flex().id("new-branch").h(26).flex_none().px(12).gap(8).items_center().text_size(12).text_color(t.accent).cursor_pointer()
+          .hover((s) => s.bg(t.foreground + "14")).on_click((_e, cx) => { this.naming = true; this.branchInput.focus(); cx.notify(); })
+          .child(div().w(10).flex_none().child("+")).child("New branch…"))
       .when(!this.branches.length, (e) => e.child(div().px(12).py(4).text_size(12).text_color(t.dim).child("Loading branches…")))
       .children(this.branches.map((name) => h_flex().id(`branch-${name}`).h(26).flex_none().px(12).gap(8).items_center().text_size(12)
         .text_color(name === current ? t.accent : t.foreground)
@@ -249,17 +268,23 @@ export default class Changes extends View {
       .child(this.syncButton(t, "Pop", "unstash", s?.stashes ? `Pop latest stash (${s.stashes} saved)` : "Pop stash (none saved)", (cx) => this.git(cx, "Pop", [["stash", "pop"]]), { enabled: Boolean(s?.stashes) }));
   }
 
-  diffRow({ kind, number, text }, t) {
-    if (kind === "@") return div().w_full().px(12).h(20).flex_none().truncate().bg(t.raised).text_color(t.dim).child(text);
-    return h_flex().w_full().h(20).flex_none().gap(10).when(kind === "+", (e) => e.bg(t.ansi2 + "18")).when(kind === "-", (e) => e.bg(t.ansi1 + "18"))
+  // Wrapped rows grow to fit their text; unwrapped ones stay one 20px line.
+  diffRow({ kind, number, text }, t, wrap) {
+    const line = (el) => wrap ? el.min_h(20).whitespace_normal() : el.h(20).truncate();
+    if (kind === "@") return line(div().w_full().px(12).flex_none().bg(t.raised).text_color(t.dim)).child(text);
+    return h_flex().w_full().when(wrap, (e) => e.min_h(20).items_start()).when(!wrap, (e) => e.h(20)).flex_none().gap(10).when(kind === "+", (e) => e.bg(t.ansi2 + "18")).when(kind === "-", (e) => e.bg(t.ansi1 + "18"))
       .child(div().w(30).flex_none().text_right().text_color(t.dim).child(number === undefined ? "" : String(number)))
-      .child(div().flex_1().min_w(0).truncate().text_color(kind === "+" ? t.ansi2 : kind === "-" ? t.ansi1 : t.foreground).child(text));
+      .child(line(div().flex_1().min_w(0)).text_color(kind === "+" ? t.ansi2 : kind === "-" ? t.ansi1 : t.foreground).child(text));
   }
 
   render(cx) {
     if (key() !== this.context) this.refresh(cx);
     const t = theme(), add = this.files.reduce((n, f) => n + f.add, 0), del = this.files.reduce((n, f) => n + f.del, 0);
     const enabled = Boolean(this.message.trim() && this.root && !this.busy && !this.loading);
+    const wrap = shared("omarchy-changes.wrap") === true, graph = props()?.graph;
+    const headButton = (id, label, on, onClick, icon) => h_flex().id(id).h(22).px(7).gap(5).flex_none().items_center().border_1().cursor_pointer().text_size(11)
+      .border_color(on ? t.accent : t.border).text_color(on ? t.accent : t.muted).hover((s) => s.text_color(t.foreground)).on_click(onClick)
+      .when(Boolean(icon), (e) => e.child(svg(icon).size(12))).child(label);
     return v_flex().id("changes").size_full().min_h(0).rounded(0).overflow_hidden().bg(t.background).text_color(t.foreground).text_size(13).track_focus(this.handle)
       .on_key_down((e, cx) => {
         if (e.key === "escape" && this.typing) { this.typing = false; this.handle.focus(); cx.stop_propagation(); cx.notify(); }
@@ -267,7 +292,9 @@ export default class Changes extends View {
       .child(h_flex().h(42).flex_none().px(14).gap(8).items_center().border_b(1).border_color(t.border)
         .child(div().text_size(11).text_color(t.muted).child("CHANGES"))
         .child(div().px(5).py(1).rounded(0).text_size(10).text_color(t.muted).child(`${this.files.length} files`))
-        .child(div().flex_1()).child(div().text_size(11).text_color(t.ansi2).child(`+${add}`)).child(div().text_size(11).text_color(t.ansi1).child(`−${del}`)))
+        .child(div().flex_1()).child(div().text_size(11).text_color(t.ansi2).child(`+${add}`)).child(div().text_size(11).text_color(t.ansi1).child(`−${del}`))
+        .child(headButton("changes-wrap", "Wrap", wrap, () => setShared("omarchy-changes.wrap", !wrap)))
+        .when(Boolean(graph), (e) => e.child(headButton("changes-graph", "Graph", false, () => run("layout.select", { stack: "changes", child: graph }), "mods/omarchy-changes/graph.svg"))))
       .when(Boolean(this.root), (e) => e.child(this.syncRow(t)))
       .when(Boolean(this.root && this.branches), (e) => e.child(this.branchList(t)))
       .child(v_flex().flex_1().min_h(0).p(8).gap(8)
@@ -282,10 +309,11 @@ export default class Changes extends View {
         })).when(!this.files.length, (e) => e.child(div().p(8).text_color(t.dim).child(this.error || (this.loading ? "Loading changes…" : this.root ? "No uncommitted changes" : "No folder")))))
         .when(this.limited, el => el.child(div().px(12).py(4).text_size(11).text_color(t.dim).child("Showing the first 1,000 changed files")))
         .child(div().id("changes-diff-container").flex_1().min_h(0).relative().rounded(0).overflow_hidden().font_family(settings().font_family ?? "JetBrains Mono").text_size(11)
-          .child(div().id("changes-diff-x").size_full().overflow_x_scrollbar()
+          .when(wrap, (e) => e.child(v_flex().id("changes-diff-wrap").size_full().overflow_y_scrollbar().children(this.rows.map((row) => this.diffRow(row, t, true)))))
+          .when(!wrap, (e) => e.child(div().id("changes-diff-x").size_full().overflow_x_scrollbar()
             .child(div().w_full().min_w(this.diffWidth).h_full().child(this.rows.length ? v_virtual_list("changes-diff", this.rows.length, 20, (i) => String(i),
-              (range) => this.rows.slice(range.start, range.end).map((row) => this.diffRow(row, t))).size_full() : div())))
-          .when(this.rows.length > 0, el => el.child(Scrollbar.vertical("changes-diff").viewport_from_layout().absolute().inset_0()))
+              (range) => this.rows.slice(range.start, range.end).map((row) => this.diffRow(row, t, false))).size_full() : div())))
+            .when(this.rows.length > 0, el => el.child(Scrollbar.vertical("changes-diff").viewport_from_layout().absolute().inset_0())))
           .when(!this.open && this.files.length > 0, (e) => e.child(div().absolute().top(6).px(12).text_color(t.dim).child("Select a file to view its changes"))))
       )
       .when(Boolean(this.note), (e) => e.child(div().px(10).pb(8).text_size(11).text_color(t.ansi1).child(this.note)))

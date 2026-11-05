@@ -10,6 +10,7 @@ const dependencies = {
   Input: { new: builder }, Scrollbar: { vertical: builder },
   v_virtual_list: () => { virtualLists++; return element; },
   spaces: () => [], focused: () => ({}), panes: () => [], theme: () => ({}), settings: () => ({}),
+  props: () => ({}), shared: () => undefined, setShared: () => {}, run: () => {},
 };
 const Changes = Function(...Object.keys(dependencies), source.replace(/^import .*;\n/gm, '').replace('export default class', 'return class'))(...Object.values(dependencies));
 const panel = new Changes();

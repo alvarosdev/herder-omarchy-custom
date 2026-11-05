@@ -3,7 +3,7 @@
     "ctrl-shift-p": "mod.open:omarchy-palette",
     "ctrl-,": "mod.open:omarchy-settings",
     "ctrl-shift-m": "mod.open:omarchy-mod-manager",
-    "ctrl-alt-space": "omarchy-bar.next-wallpaper",
-    "ctrl-alt-shift-space": "mod.open:omarchy-themes"
+    "ctrl-alt-shift-space": "mod.open:omarchy-themes",
+    "ctrl-shift-space": "omarchy-bar.next-wallpaper"
   }
 }

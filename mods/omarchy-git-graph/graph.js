@@ -3,7 +3,7 @@
 // a pane. Labels take double-clicks (checkout) and right-clicks (menus).
 import { div, svg, PathBuilder } from "gpui-kit";
 import { v_flex, h_flex, Scrollbar, v_virtual_list } from "gpui-base";
-import { spaces, panes, focused, exec, watchFolder, readTextFile, theme, settings, props, shared, setShared, openOverlay, home, notify, knownAgents, updates } from "herdr";
+import { spaces, panes, focused, exec, watchFolder, readTextFile, theme, settings, props, shared, setShared, openOverlay, home, notify, knownAgents, updates, run } from "herdr";
 import { layoutLanes } from "./lanes.js";
 import { READ, STATUS, UNCOMMITTED, LABEL, logArgs, parseLog, parseStatus, withUncommitted, labelsOf, hitLabel,
   menuFor, menuHeight, fileArgs, joinFiles, diffArgs, diffRows } from "./git.js";
@@ -574,13 +574,15 @@ export class Graph {
   label(label, color, t, mono) {
     const current = label.kind === "branch" && label.head;
     const edge = label.kind === "tag" ? t.ansi3 : label.kind === "head" ? t.accent : color;
-    return h_flex().flex_none().w(label.width).h(18).rounded(0).border_1().border_color(edge).overflow_hidden()
+    // Omarchy: a tint, not an outline. The border stays (clear) so the hit test's widths hold.
+    const clear = "#00000000";
+    return h_flex().flex_none().w(label.width).h(18).rounded(0).border_1().border_color(clear).overflow_hidden().bg(edge + "26")
       .when(current, (e) => e.bg(color)).when(label.kind === "head", (e) => e.bg(t.accent))
       .children(label.parts.map((part, i) => {
         const fg = current || part.kind === "head" ? t.background : part.kind === "tag" ? t.ansi3 : i > 0 ? t.muted : t.foreground;
         const glyph = part.kind === "branch" ? (part.head ? "check" : "branch") : part.kind === "tag" ? "tag" : "cloud";
         return h_flex().w(part.width).h_full().flex_none().px(LABEL.PAD).gap(3).items_center().overflow_hidden()
-          .when(i > 0, (e) => e.border_l(1).border_color(edge).bg(current ? t.background + "33" : edge + "1f"))
+          .when(i > 0, (e) => e.border_l(1).border_color(clear).bg(current ? t.background + "33" : edge + "1f"))
           .when(Boolean(part.icon), (e) => e.child(svg(icon(glyph)).size(10).flex_none().text_color(fg)))
           .child(div().font_family(mono).text_size(LABEL.FONT).when(current, (e) => e.font_semibold()).text_color(fg).child(part.text));
       }));
@@ -617,7 +619,11 @@ export class Graph {
     // drops the same rows down over the graph to switch to another.
     const repo = ws && this.opened ? ws.repos.find((r) => r.path === this.opened) : null;
     const settingsShown = this.state === "workspace" || (this.state === "norepo" && !this.skipped);
+    // Inside the Changes panel (props.back: its view's id), a way back to it.
+    const back = props()?.back;
     return h_flex().h(42).flex_none().px(14).gap(8).items_center().border_b(1).border_color(t.border)
+      .when(Boolean(back), (e) => e.child(div().id("graph-to-changes").flex_none().cursor_pointer().text_size(11).text_color(t.muted)
+        .hover((s) => s.text_color(t.foreground)).on_click(() => run("layout.select", { stack: "changes", child: back })).child("← CHANGES")))
       .when(!repo, (e) => e.child(div().text_size(11).text_color(t.muted).child(ws ? "MANYGIT" : "GRAPH")))
       .when(Boolean(repo), (e) => e
         .child(h_flex().id("graph-back").h(24).pl(2).pr(6).gap(3).flex_none().items_center().rounded(0).cursor_pointer()
@@ -719,10 +725,10 @@ export class Graph {
 
   toolbar(t) {
     const segment = (id, text, on, action) => div().id(id).h(22).px(9).flex().items_center().rounded(0).text_size(11.5).cursor_pointer()
-      .bg(on ? t.raised : t.background).text_color(on ? t.foreground : t.muted).when(on, (e) => e.border_1().border_color(t.border))
+      .bg(on ? t.raised : t.background).text_color(on ? t.foreground : t.muted)
       .hover((s) => s.text_color(t.foreground)).on_click(action).child(text);
-    return h_flex().h(34).flex_none().px(10).gap(8).items_center().border_b(1).border_color(t.border)
-      .child(h_flex().p(2).gap(2).rounded(0).bg(t.background).border_1().border_color(t.border)
+    return h_flex().h(34).flex_none().px(10).gap(8).items_center()
+      .child(h_flex().p(2).gap(2).rounded(0).bg(t.background)
         .child(segment("graph-all", "All branches", this.all, (_e, cx) => this.setScope(true, cx)))
         .child(segment("graph-current", "Current", !this.all, (_e, cx) => this.setScope(false, cx))))
       .child(h_flex().id("graph-remotes").h(24).px(6).gap(6).items_center().rounded(0).cursor_pointer().text_size(11.5).text_color(t.muted)
@@ -740,7 +746,7 @@ export class Graph {
       .on_mouse_down("left", (e, cx) => this.startDrag(key, e, cx))
       .child(div().w(1).h_full().when(this.drag?.key === key, (e) => e.bg(t.accent)))
       .hover((s) => s.bg(t.border));
-    return h_flex().h(24).flex_none().pr(10).items_center().border_b(1).border_color(t.border).text_size(11).text_color(t.dim)
+    return h_flex().h(24).flex_none().pr(10).items_center().text_size(11).text_color(t.dim)
       .child(head("Graph", width).pl(PAD)).child(handle("graph")).child(div().flex_1().min_w(0).child("Description"))
       .children(this.trailing().flatMap((k) => [handle(k), head(titles[k], this.cols[k]).when(k === "date", (e) => e.text_right())]));
   }
@@ -842,7 +848,7 @@ export class Graph {
       : s === "error" ? ["graph", "Can't read the history", this.error]
       : ["graph", "Loading history…", ""];
     return v_flex().flex_1().min_h(0).items_center().justify_center().gap(10).px(28).pb(40)
-      .child(div().size(46).rounded(0).bg(t.raised).border_1().border_color(t.border).flex().items_center().justify_center()
+      .child(div().size(46).rounded(0).bg(t.raised).flex().items_center().justify_center()
         .child(svg(icon(glyph)).size(22).text_color(s === "error" ? t.ansi1 : t.muted)))
       .child(div().text_size(14).font_semibold().text_color(t.foreground).child(title))
       .when(Boolean(body), (e) => e.child(div().max_w(280).text_center().text_size(12).text_color(t.muted).child(body)));
