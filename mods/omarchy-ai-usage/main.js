@@ -169,7 +169,9 @@ export default class AiUsage extends View {
         .when(Boolean(first), el => el.child(win(first)))
         .when(Boolean(second), el => el.child(win(second)));
     });
-    return this.shell(h_flex()).justify_center().px(10).gap(14).text_size(11).children(segs);
+    // The same │ the bar puts between space and folder, only between segments.
+    const sep = i => div().id(`usage-sep-${i}`).flex_none().text_color(t.border).child("│");
+    return this.shell(h_flex()).justify_center().px(10).gap(14).text_size(11).children(segs.flatMap((seg, i) => (i ? [sep(i), seg] : [seg])));
   }
 
   details() {
