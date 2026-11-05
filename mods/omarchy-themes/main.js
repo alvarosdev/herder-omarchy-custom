@@ -4,7 +4,7 @@
 
 import { View, div, image } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
-import { themes, settings, run, theme, props, closeOverlay } from "herdr";
+import { themes, settings, run, theme, props, closeOverlay, appHome, readTextFile, writeTextFile } from "herdr";
 
 const DIR = "mods/omarchy-themes/previews";
 // The themes with a preview here (Omarchy's previews/<theme>.webp).
@@ -28,9 +28,17 @@ export default class OmarchyThemes extends View {
     cx.notify();
   }
 
-  pick(name) {
+  // A light theme only shows in light mode and a dark one in dark, so the mode follows the pick,
+  // as in Omarchy. Written before closing: this overlay's tasks end with it.
+  async pick(x) {
+    if (x.light === Boolean(settings().dark)) {
+      const file = `${appHome()}/settings.json`, raw = await readTextFile(file).catch(() => null);
+      let person = {};
+      try { person = JSON.parse(raw ?? "{}"); } catch { /* unreadable: start from empty */ }
+      await writeTextFile(file, JSON.stringify({ ...person, appearance: x.light ? "light" : "dark" }, null, 2) + "\n", raw).catch(() => null);
+    }
+    run("app.theme", { name: x.name });
     closeOverlay(props().overlay);
-    run("app.theme", { name });
   }
 
   render() {
@@ -56,7 +64,7 @@ export default class OmarchyThemes extends View {
       .on_key_down((e, cx) => {
         const k = e.key;
         if (k === "escape") return closeOverlay(props().overlay);
-        if (k === "enter") return this.pick(chosen.name);
+        if (k === "enter") return this.pick(chosen);
         if (k === "right" || k === "down" || k === "tab") this.move(1, cx);
         else if (k === "left" || k === "up") this.move(-1, cx);
         else return;
@@ -64,7 +72,7 @@ export default class OmarchyThemes extends View {
       })
       .child(h_flex().items_center()
         .children(side(-1))
-        .child(div().id("th-chosen").flex_none().mx(10).border_3().border_color(t.accent).cursor_pointer().on_click(() => this.pick(chosen.name)).child(preview(chosen, W, H)))
+        .child(div().id("th-chosen").flex_none().mx(10).border_3().border_color(t.accent).cursor_pointer().on_click(() => this.pick(chosen)).child(preview(chosen, W, H)))
         .children(side(1)))
       .child(h_flex().gap(12).items_center()
         .child(div().text_size(30).font_semibold().text_color("#ffffffee").child(chosen.name.split("-").map((w) => w[0].toUpperCase() + w.slice(1)).join(" ")))
