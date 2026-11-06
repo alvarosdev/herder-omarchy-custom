@@ -1,4 +1,4 @@
-import { home, readTextFile } from "herdr";
+import { home, readTextFile, settings } from "herdr";
 import { H, DAY } from "./time.js";
 
 const json = async path => {
@@ -98,16 +98,20 @@ async function creds(src) {
 const claudeDirs = [".claude", ".claude-personal"];
 const claudeLabel = dir => (dir.split("/").pop().replace(/^\.claude-?/, "") || "claude");
 
-// The name a profile is signed in under: its organization ("Flexspring"), or "personal" for the
-// "<email>'s Organization" a personal account gets. ~/.claude keeps its state in ~/.claude.json,
-// other config folders inside themselves. Falls back to the folder's name.
+const capital = s => s[0].toUpperCase() + s.slice(1);
+
+// settings.json's "claude_labels" ({ "~/.claude": "Work" }) names a profile outright. Otherwise its
+// organization ("Flexspring"), or "Personal" for the "<email>'s Organization" a personal account
+// gets, else the folder's name. ~/.claude keeps its state in ~/.claude.json, other folders inside.
 async function claudeName(dir) {
+  const own = settings()?.claude_labels?.[dir.replace(home(), "~")];
+  if (typeof own === "string" && own) return own;
   const file = dir === `${home()}/.claude` ? `${home()}/.claude.json` : `${dir}/.claude.json`;
   const text = await readTextFile(file).catch(() => null);
   let org;
   try { org = JSON.parse(text ?? "{}")?.oauthAccount?.organizationName; } catch { /* mid-write or broken: the folder's name */ }
-  if (!org) return claudeLabel(dir);
-  return /'s Organization$/.test(org) ? "personal" : org;
+  if (!org) return capital(claudeLabel(dir));
+  return /'s Organization$/.test(org) ? "Personal" : org;
 }
 
 function labelled(v, why) {

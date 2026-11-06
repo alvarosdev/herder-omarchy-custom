@@ -3,12 +3,13 @@ import { readFileSync } from 'node:fs';
 import { test } from 'node:test';
 import { H, DAY } from '../mods/omarchy-ai-usage/time.js';
 
-function usageHarness(files = {}, response = {}, status = 200) {
+function usageHarness(files = {}, response = {}, status = 200, settings = {}) {
   const state = new Map();
   const requests = [];
   const dependencies = {
     View: class {},
     home: () => '/home/test',
+    settings: () => settings,
     readTextFile: async path => files[path] === undefined ? null : JSON.stringify(files[path]),
     shared: key => state.get(key),
     setShared: (key, value) => state.set(key, value),
@@ -162,13 +163,19 @@ test('Pi Copilot OAuth uses refresh token for the usage endpoint', async () => {
   assert.equal(h.requests[0].headers.Authorization, 'token refresh-token');
 });
 
-test('a Claude profile is named after its organization, or personal', async () => {
+test('a Claude profile is named after its organization, Personal, or its folder', async () => {
   const { route } = usageHarness({
     '/home/test/.claude.json': { oauthAccount: { organizationName: 'Flexspring' } },
     '/home/test/.claude-personal/.claude.json': { oauthAccount: { organizationName: "me@example.com's Organization" } },
   });
   assert.equal((await route(agent('claude'), '/home/test/.claude'))[0].label, 'Flexspring');
-  assert.equal((await route(agent('claude'), '/home/test/.claude-personal'))[0].label, 'personal');
-  // No account file: the folder's name, as before.
-  assert.equal((await route(agent('claude'), '/home/test/.claude-other'))[0].label, 'other');
+  assert.equal((await route(agent('claude'), '/home/test/.claude-personal'))[0].label, 'Personal');
+  assert.equal((await route(agent('claude'), '/home/test/.claude-other'))[0].label, 'Other');
+});
+
+test('settings.json claude_labels names a Claude profile outright', async () => {
+  const { route } = usageHarness({ '/home/test/.claude.json': { oauthAccount: { organizationName: 'Flexspring' } } },
+    {}, 200, { claude_labels: { '~/.claude': 'Work' } });
+  assert.equal((await route(agent('claude'), '/home/test/.claude'))[0].label, 'Work');
+  assert.equal((await route(agent('claude'), '/home/test/.claude-other'))[0].label, 'Other');
 });
