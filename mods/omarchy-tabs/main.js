@@ -189,9 +189,10 @@ export default class Tabs extends View {
         .tooltip(`${name}\n${detail}`)
         // The close button shows on the active tab and on the one under the pointer.
         .on_hover((over, cx) => { if (over) this.overTab = c.id; else if (this.overTab === c.id) this.overTab = null; cx.notify(); })
-        .border_r(1).border_color(t.border)
-        .bg(c.active ? sel : idle).text_color(c.active ? t.foreground : t.muted)
-        .hover(s => s.bg(c.active ? sel : hov))
+        // Matches the pane's focus frame.
+        .when(c.active, el => el.border_2().border_color(t.accent)).when(!c.active, el => el.border_r(1).border_color(t.border))
+        .bg(c.active ? t.background : idle).text_color(c.active ? t.foreground : t.muted)
+        .hover(s => s.bg(c.active ? t.background : hov))
         .on_mouse_down("left", (e, cx) => { cx.stop_propagation(); this.pressed = i; if (e.click_count === 2) run("tab.rename", { id: c.id }); })
         .on_mouse_up("left", () => {
           const from = this.pressed; this.pressed = null;
