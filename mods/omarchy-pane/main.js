@@ -263,8 +263,8 @@ export default class Pane extends View {
           .child(div().w(1).h(16).mx(2).flex_none().bg(t.border))
           .child(this.button(t, `ph-r-${pane}`, "split-right", "pane.split", { direction: "right", pane }))
           .child(this.button(t, `ph-d-${pane}`, "split-down", "pane.split", { direction: "down", pane }))
-          .child(this.button(t, `ph-z-${pane}`, "zoom", "pane.zoom", { pane }))
-          .child(this.button(t, `ph-x-${pane}`, "close", "pane.close", { pane }))));
+          .child(this.button(t, `ph-x-${pane}`, "close", "pane.close", { pane }))
+          .child(this.button(t, `ph-z-${pane}`, "zoom", "pane.zoom", { pane }))));
   }
 
   render(cx) {
@@ -303,7 +303,7 @@ export default class Pane extends View {
       .when(this.hovered && !p.zoomed, el => el
         .child(this.button(t, `ph-r-${pane}`, "split-right", "pane.split", { direction: "right", pane }))
         .child(this.button(t, `ph-d-${pane}`, "split-down", "pane.split", { direction: "down", pane }))
-        .child(this.button(t, `ph-z-${pane}`, "zoom", "pane.zoom", { pane }))
-        .child(this.button(t, `ph-x-${pane}`, "close", "pane.close", { pane })));
+        .child(this.button(t, `ph-x-${pane}`, "close", "pane.close", { pane }))
+        .child(this.button(t, `ph-z-${pane}`, "zoom", "pane.zoom", { pane })));
   }
 }
