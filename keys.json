@@ -1,4 +1,10 @@
 {
+  "terminal": {
+    "ctrl-left": "pane.go:left",
+    "ctrl-right": "pane.go:right",
+    "ctrl-up": "pane.go:up",
+    "ctrl-down": "pane.go:down"
+  },
   "layout:omarchy": {
     "ctrl-shift-p": "mod.open:omarchy-palette",
     "ctrl-,": "mod.open:omarchy-settings",
@@ -23,6 +29,10 @@
     "alt-right": "tab.next",
     "alt-up": "space.prev",
     "alt-down": "space.next",
+    "ctrl-left": "pane.go:left",
+    "ctrl-right": "pane.go:right",
+    "ctrl-up": "pane.go:up",
+    "ctrl-down": "pane.go:down",
     "super-return": "terminal.open",
     "super-w": "pane.close",
     "super-f": "pane.zoom",

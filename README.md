@@ -48,13 +48,14 @@ The agent copies the layout, mods, themes and wallpapers into `~/.config/herdr-a
 
 ## Keys
 
-These keys work only in the Omarchy layout. They follow Omarchy: its Herdr keymap and its desktop keys. Keys that GNOME already uses are left out. `super-k` lists every key.
+These keys work only in the Omarchy layout, except Ctrl+arrows, which also apply in terminals across layouts. They follow Omarchy: its Herdr keymap and its desktop keys. Keys that GNOME already uses are left out. `super-k` lists every key.
 
 | Key | Action |
 | --- | --- |
 | `alt-1` … `alt-9` | Go to tab 1 to 9 |
 | `alt-left` / `alt-right` | Previous / next tab |
 | `alt-up` / `alt-down` | Previous / next space |
+| `ctrl-left` / `ctrl-right` / `ctrl-up` / `ctrl-down` | Move between panes |
 | `alt-enter` / `alt-shift-enter` | Split the pane right / down |
 | `super-return` | New terminal |
 | `ctrl-alt-shift-t` | Reopen the last closed tab, with its agents resumed |
@@ -71,6 +72,8 @@ These keys work only in the Omarchy layout. They follow Omarchy: its Herdr keyma
 | `ctrl-shift-l` | Change to a different layout |
 
 Left out because GNOME uses them: Omarchy Herdr's `ctrl-space` prefix (input method), `alt-esc` (cycle windows), `ctrl-alt-arrows` and `ctrl-alt-shift-arrows` (workspaces). Herdr's own `alt-h/j/k/l` still move between panes.
+
+Ctrl+arrows take priority over terminal shortcuts, including Ctrl+Left/Right word movement.
 
 ## What is inside
 
