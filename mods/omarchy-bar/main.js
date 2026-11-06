@@ -1,7 +1,7 @@
 import { View, div, svg } from "gpui-kit";
 import { h_flex } from "gpui-base";
 import { spaces, agents, theme, run, window, props, layout, shared, setShared, focused, home, nextCommand, settings } from "herdr";
-import { wallpapers, setWallpaper } from "./wallpaper.js";
+import { wallpapers, setWallpaper, setZoomBorder, ZOOM_BORDER } from "./wallpaper.js";
 
 const own = (el) => el.on_mouse_down("left", (_e, cx) => cx.stop_propagation());
 
@@ -66,6 +66,12 @@ export default class OmarchyBar extends View {
       matchWallpaper(name);
     }
     const list = spaces();
+    const zoomed = Boolean(list.find((s) => s.active)?.tabs.find((tab) => tab.active)?.zoomed);
+    if (zoomed !== this.zoomed) {
+      // First render only fixes a thick frame left over from a zoom when the app quit.
+      if (zoomed || this.zoomed !== undefined || find(layout(), "main")?.content?.pane?.focus?.width === ZOOM_BORDER) setZoomBorder(zoomed);
+      this.zoomed = zoomed;
+    }
     const blocked = new Set(agents().filter((a) => a.status === "blocked").map((a) => a.space));
     const space = list.find((s) => s.active);
     const cwd = focused()?.cwd;

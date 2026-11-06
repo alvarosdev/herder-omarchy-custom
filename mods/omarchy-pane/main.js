@@ -257,11 +257,13 @@ export default class Pane extends View {
       // The pane controls show on hover in room kept for them, so the
       // toolbar doesn't shift under the pointer.
       .child(h_flex().w(101).flex_none().gap(4).items_center()
-        .when(this.hovered, (el) => el
+        .when(p.zoomed, (el) => el.justify_end()
+          .child(this.button(t, `ph-z-${pane}`, "unzoom", "pane.zoom", { pane })))
+        .when(this.hovered && !p.zoomed, (el) => el
           .child(div().w(1).h(16).mx(2).flex_none().bg(t.border))
           .child(this.button(t, `ph-r-${pane}`, "split-right", "pane.split", { direction: "right", pane }))
           .child(this.button(t, `ph-d-${pane}`, "split-down", "pane.split", { direction: "down", pane }))
-          .child(this.button(t, `ph-z-${pane}`, p.zoomed ? "unzoom" : "zoom", "pane.zoom", { pane }))
+          .child(this.button(t, `ph-z-${pane}`, "zoom", "pane.zoom", { pane }))
           .child(this.button(t, `ph-x-${pane}`, "close", "pane.close", { pane }))));
   }
 
@@ -296,10 +298,12 @@ export default class Pane extends View {
       .when(st === "working", el => el.child(svg("mods/workspace-chrome/spinner.svg").size(12).flex_none().text_color(t.working).spin(900)))
       .when(st === "blocked", el => el.child(div().flex_none().px(6).h(18).flex().items_center().rounded(0).bg(t.blocked + "26").text_size(10.5).font_semibold().text_color(t.blocked).child("Needs you")))
       .when(st === "done", el => el.child(div().size(7).flex_none().rounded(0).bg(t.done)))
-      .when(this.hovered, el => el
+      // A zoomed pane shows only its unzoom button, always.
+      .when(p.zoomed, el => el.child(this.button(t, `ph-z-${pane}`, "unzoom", "pane.zoom", { pane })))
+      .when(this.hovered && !p.zoomed, el => el
         .child(this.button(t, `ph-r-${pane}`, "split-right", "pane.split", { direction: "right", pane }))
         .child(this.button(t, `ph-d-${pane}`, "split-down", "pane.split", { direction: "down", pane }))
-        .child(this.button(t, `ph-z-${pane}`, p.zoomed ? "unzoom" : "zoom", "pane.zoom", { pane }))
+        .child(this.button(t, `ph-z-${pane}`, "zoom", "pane.zoom", { pane }))
         .child(this.button(t, `ph-x-${pane}`, "close", "pane.close", { pane })));
   }
 }
