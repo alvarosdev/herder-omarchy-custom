@@ -144,6 +144,11 @@ export default class Pane extends View {
     if (before.hidden) run("layout.hide", { id: "panel" });
   }
 
+  // A tab's only pane has nothing to zoom over.
+  alone(p) {
+    return panes().filter((other) => other.tab === p.tab).length === 1;
+  }
+
   button(t, id, icon, command, args) {
     return div()
       .id(id)
@@ -264,7 +269,7 @@ export default class Pane extends View {
           .child(this.button(t, `ph-r-${pane}`, "split-right", "pane.split", { direction: "right", pane }))
           .child(this.button(t, `ph-d-${pane}`, "split-down", "pane.split", { direction: "down", pane }))
           .child(this.button(t, `ph-x-${pane}`, "close", "pane.close", { pane }))
-          .child(this.button(t, `ph-z-${pane}`, "zoom", "pane.zoom", { pane }))));
+          .when(!this.alone(p), (e) => e.child(this.button(t, `ph-z-${pane}`, "zoom", "pane.zoom", { pane })))));
   }
 
   render(cx) {
@@ -304,6 +309,6 @@ export default class Pane extends View {
         .child(this.button(t, `ph-r-${pane}`, "split-right", "pane.split", { direction: "right", pane }))
         .child(this.button(t, `ph-d-${pane}`, "split-down", "pane.split", { direction: "down", pane }))
         .child(this.button(t, `ph-x-${pane}`, "close", "pane.close", { pane }))
-        .child(this.button(t, `ph-z-${pane}`, "zoom", "pane.zoom", { pane })));
+        .when(!this.alone(p), (e) => e.child(this.button(t, `ph-z-${pane}`, "zoom", "pane.zoom", { pane }))));
   }
 }
