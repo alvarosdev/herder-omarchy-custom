@@ -8,7 +8,7 @@ import { themes, settings, run, theme, props, closeOverlay, appHome, readTextFil
 
 const DIR = "mods/omarchy-themes/previews";
 // The themes with a preview here (Omarchy's previews/<theme>.webp).
-const PREVIEWS = ["catppuccin", "catppuccin-latte", "ethereal", "everforest", "flexoki-light", "gruvbox", "hackerman", "jade-horse",
+const PREVIEWS = ["claude", "claude-light", "catppuccin", "catppuccin-latte", "ethereal", "everforest", "flexoki-light", "gruvbox", "hackerman", "jade-horse",
   "kanagawa", "last-horizon", "lumon", "lupine", "matte-black", "miasma", "nord", "retro-82", "ristretto", "rose-pine",
   "solitude", "starship", "tokyo-night", "vantablack", "white"];
 
@@ -51,7 +51,15 @@ export default class OmarchyThemes extends View {
     // Sizes come in screen px; elements take units that the zoom scales.
     const width = (this.size?.width ?? 1600) / (settings().zoom ?? 1), W = Math.round(width * 0.5), H = Math.round(W * 9 / 16);
     const STRIP = 64, sideH = Math.round(H * 0.88), count = Math.min(6, Math.floor((all.length - 1) / 2), Math.floor((width - W) / 2 / STRIP));
-    const preview = (x, w, h) => image(`${DIR}/${x.name}.webp`).w(w).h(h).flex_none();
+    const preview = (x, w, h) => x.name === "claude" || x.name === "claude-light"
+      ? v_flex().w(w).h(h).flex_none().p(16).gap(8).bg(x.colors.canvas)
+        .child(div().h(20).w_full().bg(x.colors.chrome))
+        .child(h_flex().flex_1().gap(8)
+          .child(div().w(Math.round(w * 0.2)).h_full().bg(x.colors.chrome))
+          .child(v_flex().flex_1().h_full().p(12).gap(8).bg(x.colors.background)
+            .child(div().w(Math.round(w * 0.28)).h(6).bg(x.colors.accent))
+            .child(div().w(Math.round(w * 0.4)).h(4).bg(x.colors.muted))))
+      : image(`${DIR}/${x.name}.webp`).w(w).h(h).flex_none();
     const strip = (by) => div().id(`th-strip-${by}`).relative().w(STRIP).h(sideH).flex_none().overflow_hidden()
       .border_l(1).border_r(1).border_color("#000000").cursor_pointer().on_click((_e, cx) => this.move(by, cx))
       .child(div().absolute().top(0).when(by < 0, (e) => e.left(0)).when(by > 0, (e) => e.right(0)).child(preview(near(by), Math.round(W * 0.88), sideH)))
