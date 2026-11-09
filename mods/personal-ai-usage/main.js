@@ -1,6 +1,7 @@
 import { View, div, image } from "gpui-kit";
 import { h_flex, v_flex } from "gpui-base";
-import { appHome, exec, home, readTextFile, theme } from "herdr";
+import { appHome, exec, home, theme } from "herdr";
+import { fetchUsage } from "./providers.js";
 
 const sources = [
   { provider: "codex", agent: "Codex", from: { codex: true } },
@@ -18,13 +19,9 @@ export default class UsageCard extends View {
   async refresh(cx) {
     if (this.busy) return;
     this.busy = true;
-    try { await exec("python3", ["-I", `${appHome()}/mods/bettr-usage/report_usage.py`, "--now"], { timeout: 30000 }); } catch {}
     const results = await Promise.all(sources.map(async source => {
-      try {
-        const snapshot = JSON.parse(await readTextFile(`${home()}/.cache/bettr/usage/${source.provider}.json`));
-        if (Date.now() / 1000 - snapshot.updatedAt > 1800) throw new Error("Usage data is older than 30 minutes");
-        return { windows: snapshot.windows.filter(w => !w.resetsAt || w.resetsAt * 1000 > Date.now()) };
-      } catch (error) { return { error: String(error?.message ?? error) }; }
+      try { return { windows: await fetchUsage(source) }; }
+      catch (error) { return { error: String(error?.message ?? error) }; }
     }));
     let balance;
     try {
@@ -50,7 +47,7 @@ export default class UsageCard extends View {
 
   render() {
     const t = theme();
-    const find = (provider, period) => this.data[provider]?.windows?.find(w => period === "5h" ? w.label === "5-hour" : w.label === "Weekly")?.used;
+    const find = (provider, period) => this.data[provider]?.windows?.find(w => period === "5h" ? w.span >= 4 * 3600000 && w.span < 24 * 3600000 : w.span >= 6 * 86400000)?.used;
     const balance = this.data.balance;
     const amount = balance?.balances?.map(b => `${b.currency} ${b.total}`).join(" · ");
     const details = ["Click to refresh", ...sources.map(s => this.data[s.provider]?.error ? `${s.agent}: ${this.data[s.provider].error}` : ""), balance?.error || ""].filter(Boolean).join("\n");

@@ -9,11 +9,11 @@ A personal fork of [Omarchy for Herdr](https://github.com/shafiqimtiaz/herdr-oma
 
 ## Install
 
-Install Herdr App and the **Bettr usage** mod first. The card uses its `mods/bettr-usage/report_usage.py` reporter and the snapshots it writes in `~/.cache/bettr/usage`; it needs Python 3, the Codex CLI and signed-in Codex/Claude accounts. The reporter is a separate dependency and is not included in this repository.
+Install Herdr App first. The usage card uses the included Omarchy provider code and signed-in Codex and Claude accounts; no separate usage mod is required. Claude credentials are read from the default profile or its macOS Keychain entry. Codex uses its local ChatGPT login.
 
 Ask an agent in Herdr to read `~/.config/herdr-app/AGENTS.md` and install the layout, mods, themes and layout-specific bindings from this repository. Existing Herdr settings and other layouts should be preserved. Select the Omarchy layout in Herdr Settings. The layout uses Herdr's built-in provider icons and inherits your chosen fonts.
 
-DeepSeek uses `DEEPSEEK_API_KEY` or, on macOS, the Keychain item `herdr-deepseek-api-key`. Credentials and usage data are never included in this repository. The DeepSeek balance is an amount rather than a percentage. A missing or expired usage snapshot appears as a dash; hover over the card heading for details.
+DeepSeek uses `DEEPSEEK_API_KEY` or, on macOS, the Keychain item `herdr-deepseek-api-key`. Credentials and usage data are never included in this repository. The DeepSeek balance is an amount rather than a percentage. An unavailable usage reading appears as a dash; hover over the card heading for details.
 
 ## Development
 

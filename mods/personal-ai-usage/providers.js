@@ -1,4 +1,4 @@
-import { home, readTextFile, settings } from "herdr";
+import { exec, home, readTextFile, settings } from "herdr";
 import { H, DAY } from "./time.js";
 
 const json = async path => {
@@ -74,7 +74,14 @@ const UNDER = { anthropic: "claude", "openai-codex": "codex", openai: "codex", "
 async function creds(src) {
   const f = src.from;
   if (f.claude) {
-    const o = (await json(`${f.claude}/.credentials.json`))?.claudeAiOauth;
+    let o = (await json(`${f.claude}/.credentials.json`))?.claudeAiOauth;
+    // Claude Code stores its default profile in the macOS Keychain.
+    if (!o && f.claude === `${home()}/.claude`) {
+      try {
+        const result = await exec("security", ["find-generic-password", "-s", "Claude Code-credentials", "-w"], { timeout: 5000 });
+        if (result.code === 0) o = JSON.parse(result.stdout)?.claudeAiOauth;
+      } catch { /* Other platforms use the credentials file. */ }
+    }
     if (!o?.accessToken) throw new Error(`no Claude Code login in ${f.claude.replace(home(), "~")}`);
     return { token: o.accessToken, expires: o.expiresAt };
   }
