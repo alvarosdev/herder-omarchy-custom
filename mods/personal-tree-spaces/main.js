@@ -35,6 +35,16 @@ const base = (path) => path.replace(/\/+$/, "").split("/").pop();
 const FALLBACK = 60000;
 
 // A space speaks up only when something in it needs you.
+// Agent colors distinguish providers independently of their current status.
+function agentColor(pane, t) {
+  const key = (pane?.app || pane?.program?.key || "").toLowerCase();
+  if (key === "claude" || key === "claude-code") return "#e99a70";
+  if (key === "codex") return "#7da6ff";
+  if (key === "pi") return "#bd93f9";
+  if (key === "omp" || key === "oh-my-pi") return "#73daca";
+  return pane?.status ? tone(t, pane.status) : t.muted;
+}
+
 export function tone(t, status) {
   return t[status] ?? t.unknown;
 }
@@ -371,6 +381,7 @@ export default class Spaces extends View {
       if (folded) return [head];
       return [head, ...sessions.map(({ r, tab, pane }, index) => {
         const on = r.w.active && tab.active && (!pane || pane.focused);
+        const color = agentColor(pane, t);
         const liveTitle = (pane?.title ?? "").replace(/^[^\p{L}\p{N}]+/u, "").trim();
         const title = liveTitle && liveTitle !== pane?.program?.name ? liveTitle : (tab.named ? tab.name : pane?.program?.name || tab.name);
         const label = group.rows.length > 1 && r.w.named ? `${r.w.name} · ${title}` : title;
@@ -381,8 +392,8 @@ export default class Spaces extends View {
           .on_mouse_down("right", () => this.menu(r.w))
           .on_click(() => { run("space.select", { id: r.w.id }); run("tab.select", { id: tab.id }); if (pane) run("pane.focus", { pane: pane.pane }); })
           .child(div().text_color(t.dim).child(index === sessions.length - 1 ? "└─" : "├─"))
-          .child(div().text_color((pane?.status ?? tab.status) ? tone(t, pane?.status ?? tab.status) : t.dim).child("●"))
-          .child(div().flex_1().min_w(0).truncate().text_color(on ? t.foreground : t.muted).child(label));
+          .child(div().text_color(color).child("●"))
+          .child(div().flex_1().min_w(0).truncate().text_color(color).child(label));
       })];
     });
   }
